@@ -126,7 +126,6 @@
 
         /* =========================================
            STYLES POUR LE GÉNÉRATEUR PDF (HTML2PDF)
-           Sortis du @media print pour être visibles par l'outil
            ========================================= */
         #print-view, #print-report-view { display: none; background: white; color: black; font-size: 11pt; padding: 10mm; width: 100%; max-width: 800px; margin: 0 auto; }
         .print-header { text-align: center; border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center;}
@@ -139,7 +138,6 @@
         .print-label { font-weight: bold; margin-right: 5px; }
         .print-value { white-space: pre-wrap; }
         
-        /* Protection pour l'impression système classique si déclenchée manuellement */
         @media print {
             @page { margin: 0; }
             body { background: white; }
@@ -562,7 +560,7 @@
                 } catch(e) { alert("Erreur lors du chiffrement des données."); }
             },
 
-            // EXPORTATION DU RAPPORT MENSUEL EN PDF (Dans les téléchargements)
+            // EXPORTATION DU RAPPORT MENSUEL EN PDF (Silencieuse)
             async generateMonthlyReport(event) {
                 const [year, month] = document.getElementById('report-month').value.split('-');
                 if(!year) return;
@@ -580,12 +578,14 @@
                 });
                 document.getElementById('report-total-sum').textContent = total.toFixed(3);
                 
-                // Génération HTML2PDF
                 const element = document.getElementById('print-report-view');
                 element.style.display = 'block';
                 
-                const btnText = event.target.innerText;
-                event.target.innerText = "⏳ Génération...";
+                let btnText = "Générer (PDF)";
+                if (event && event.target) {
+                    btnText = event.target.innerText;
+                    event.target.innerText = "⏳ Génération...";
+                }
 
                 try {
                     await html2pdf().set({
@@ -597,13 +597,14 @@
                     }).from(element).save();
                 } finally {
                     element.style.display = 'none';
-                    event.target.innerText = btnText;
+                    if (event && event.target) event.target.innerText = btnText;
                 }
             },
 
-            // EXPORTATION DE LA SAUVEGARDE JSON (Date et Heure exactes)
+            // EXPORTATION DE LA SAUVEGARDE JSON (Forcée et silencieuse)
             async exportBackup() {
-                const data = localStorage.getItem(this.STORAGE_KEY); if(!data) return alert("Base vide.");
+                const data = localStorage.getItem(this.STORAGE_KEY); 
+                if(!data) return alert("Base vide.");
                 
                 const now = new Date();
                 const dateStr = now.toLocaleDateString('fr-FR').replace(/\//g, '-');
@@ -611,10 +612,20 @@
                 const fileName = `DocPocket_Sauvegarde_${dateStr}_${timeStr}.json`;
 
                 const blob = new Blob([data], { type: "application/json" });
+                const url = URL.createObjectURL(blob);
+                
                 const a = document.createElement('a'); 
-                a.href = URL.createObjectURL(blob); 
+                a.style.display = 'none'; // Dissimule le lien pour éviter les pop-ups
+                a.href = url; 
                 a.download = fileName;
-                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                document.body.appendChild(a); 
+                a.click();
+                
+                // Nettoyage de la mémoire immédiatement après
+                setTimeout(() => {
+                    document.body.removeChild(a);
+                    window.URL.revokeObjectURL(url);
+                }, 100);
             },
 
             importBackup(e) {
@@ -664,26 +675,27 @@
 
             async deleteVisit(id) { if (confirm("Supprimer définitivement ce dossier médical ?")) { this.visits = this.visits.filter(v => v.id !== id); await this.saveData(); this.renderDashboard(); } },
 
-            // EXPORTATION DU RAPPORT MEDICAL DU PATIENT EN PDF (Dans les téléchargements)
+            // EXPORTATION DU RAPPORT MEDICAL DU PATIENT EN PDF (Silencieuse)
             async generatePDF(id, buttonElement) {
                 const v = this.visits.find(x => x.id === id); if (!v) return;
                 
-                // Remplissage des données
                 document.getElementById('print-date-display').textContent = new Date(v.date).toLocaleDateString('fr-FR');
                 document.getElementById('print-signature-name').textContent = this.doctorName;
                 ['name','age','phone','reason','history','allergies','bp','pulse','temp','spo2','prescription'].forEach(k => { if(document.getElementById(`p-${k}`)) document.getElementById(`p-${k}`).textContent = v[k]||'-'; });
                 ['gen','hemo','resp','neuro','abdo','other'].forEach(k => { if(document.getElementById(`p-exam-${k}`)) document.getElementById(`p-exam-${k}`).textContent = v[`exam${k.charAt(0).toUpperCase()+k.slice(1)}`]? `${k.toUpperCase()}: ${v[`exam${k.charAt(0).toUpperCase()+k.slice(1)}`]} ` : ''; });
                 document.getElementById('p-fee').textContent = v.fee ? `${parseFloat(v.fee).toFixed(3)} DT` : 'Non facturé';
                 
-                // Génération HTML2PDF
                 const element = document.getElementById('print-view');
                 element.style.display = 'block';
 
                 const dateConsult = new Date(v.date).toLocaleDateString('fr-FR').replace(/\//g, '-');
                 const nomFichier = `Rapport_Medical_${v.name.replace(/\s+/g, '_')}_${dateConsult}.pdf`;
 
-                const btnText = buttonElement.innerText;
-                buttonElement.innerText = "⏳...";
+                let btnText = "📄 PDF";
+                if (buttonElement) {
+                    btnText = buttonElement.innerText;
+                    buttonElement.innerText = "⏳...";
+                }
 
                 try {
                     await html2pdf().set({
@@ -695,7 +707,7 @@
                     }).from(element).save();
                 } finally {
                     element.style.display = 'none';
-                    buttonElement.innerText = btnText;
+                    if (buttonElement) buttonElement.innerText = btnText;
                 }
             },
 
