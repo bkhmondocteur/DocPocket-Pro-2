@@ -283,7 +283,6 @@
         <div class="print-section"><h3>Données</h3><p><strong>ATCD:</strong> <span id="p-history"></span> | <strong>Allergies:</strong> <span id="p-allergies"></span></p><p><strong>TA:</strong> <span id="p-bp"></span> | <strong>Pouls:</strong> <span id="p-pulse"></span> | <strong>Temp:</strong> <span id="p-temp"></span> | <strong>SpO2:</strong> <span id="p-spo2"></span></p></div>
         <div class="print-section"><h3>Examen</h3><p><span id="p-exam-gen"></span> <span id="p-exam-hemo"></span> <span id="p-exam-resp"></span> <span id="p-exam-neuro"></span> <span id="p-exam-abdo"></span> <span id="p-exam-other"></span></p></div>
         <div class="print-section"><h3>Traitement</h3><p id="p-prescription" class="print-value"></p></div>
-        <div style="margin-top:20px"><p><strong>Honoraires :</strong> <span id="p-fee"></span></p></div>
         <div style="text-align:right; margin-top:30px;"><p><strong>Signature :</strong></p><p id="print-signature-name" style="font-weight:bold;"></p></div>
     </div>
 
@@ -301,7 +300,6 @@
     </div>
 
     <script>
-        // LOGIQUE DE CHIFFREMENT
         const cryptoUtils = {
             async deriveKey(pin, salt) {
                 const pinBuffer = new TextEncoder().encode(pin);
@@ -327,24 +325,21 @@
             }
         };
 
-        // --- NOUVEAU : FONCTION DE PARTAGE/TÉLÉCHARGEMENT DIRECT ---
         async function saveOrShareFile(filename, blob, mimeType) {
             const file = new File([blob], filename, { type: mimeType });
             
-            // Si le téléphone supporte le partage direct (Bypass du Wrapper APK)
             if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                 try {
                     await navigator.share({
                         files: [file],
                         title: filename
                     });
-                    return; // Partage réussi, pas besoin de télécharger
+                    return; 
                 } catch (err) {
                     console.log("Partage annulé ou échoué", err);
                 }
             }
             
-            // Fallback: Téléchargement classique (si le partage est annulé ou indisponible)
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.style.display = 'none';
@@ -381,7 +376,6 @@
                     document.getElementById('auth-license-section').classList.add('hidden');
                     document.getElementById('pin-title').innerText = "Entrez votre Code PIN";
                     
-                    // Affiche le bouton biométrique uniquement si environnement sécurisé (HTTPS)
                     if (window.isSecureContext && navigator.credentials && window.PublicKeyCredential) {
                         document.getElementById('btn-biometric').classList.remove('hidden');
                     }
@@ -489,7 +483,6 @@
                 document.getElementById('app-ui').classList.remove('hidden');
                 app.init(); 
                 
-                // NOTIFICATION DE BIENVENUE
                 const toast = document.getElementById('toast-notification');
                 document.getElementById('toast-doc-name').textContent = app.doctorName || localStorage.getItem('docpocket_doc_name');
                 toast.classList.remove('hidden');
@@ -506,7 +499,7 @@
         };
 
         const app = {
-            visits: [], STORAGE_KEY: 'docpocket_visits_data', doctorName: '', currentPin: '',
+            visits: [], STORAGE_KEY: 'docpocket_visits_data', doctorName: '', currentPin: '', deferredPrompt: null,
 
             init() {
                 this.doctorName = localStorage.getItem('docpocket_doc_name') || 'Dr';
@@ -539,7 +532,6 @@
                 } catch(e) { alert("Erreur lors du chiffrement des données."); }
             },
 
-            // --- EXPORTATION DU RAPPORT MENSUEL (Via Share API) ---
             async generateMonthlyReport(event) {
                 const [year, month] = document.getElementById('report-month').value.split('-');
                 if(!year) return;
@@ -576,7 +568,6 @@
                         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                     };
                     
-                    // Génère le Blob au lieu de sauvegarder directement
                     const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
                     await saveOrShareFile(fileName, pdfBlob, 'application/pdf');
 
@@ -586,7 +577,6 @@
                 }
             },
 
-            // --- EXPORTATION DE LA SAUVEGARDE JSON (Via Share API) ---
             async exportBackup() {
                 const data = localStorage.getItem(this.STORAGE_KEY); 
                 if(!data) return alert("Base vide.");
@@ -647,7 +637,6 @@
 
             async deleteVisit(id) { if (confirm("Supprimer définitivement ce dossier médical ?")) { this.visits = this.visits.filter(v => v.id !== id); await this.saveData(); this.renderDashboard(); } },
 
-            // --- EXPORTATION DU RAPPORT MEDICAL EN PDF (Via Share API) ---
             async generatePDF(id, buttonElement) {
                 const v = this.visits.find(x => x.id === id); if (!v) return;
                 
@@ -655,7 +644,7 @@
                 document.getElementById('print-signature-name').textContent = this.doctorName;
                 ['name','age','phone','reason','history','allergies','bp','pulse','temp','spo2','prescription'].forEach(k => { if(document.getElementById(`p-${k}`)) document.getElementById(`p-${k}`).textContent = v[k]||'-'; });
                 ['gen','hemo','resp','neuro','abdo','other'].forEach(k => { if(document.getElementById(`p-exam-${k}`)) document.getElementById(`p-exam-${k}`).textContent = v[`exam${k.charAt(0).toUpperCase()+k.slice(1)}`]? `${k.toUpperCase()}: ${v[`exam${k.charAt(0).toUpperCase()+k.slice(1)}`]} ` : ''; });
-                document.getElementById('p-fee').textContent = v.fee ? `${parseFloat(v.fee).toFixed(3)} DT` : 'Non facturé';
+                // LES HONORAIRES ONT ÉTÉ RETIRÉS DE LA GÉNÉRATION DE CE PDF
                 
                 const element = document.getElementById('print-view');
                 element.style.display = 'block';
@@ -678,9 +667,7 @@
                         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                     };
                     
-                    // Génère le Blob
                     const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
-                    // Lance le partage
                     await saveOrShareFile(nomFichier, pdfBlob, 'application/pdf');
 
                 } finally {
