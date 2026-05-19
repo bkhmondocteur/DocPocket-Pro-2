@@ -1,6 +1,7 @@
 {
   "name": "DocPocket Pro",
   "short_name": "DocPocket",
+  "id": "/docpocket-v2",
   "description": "Gestion chiffrée des dossiers médicaux côté client.",
   "start_url": "index.html",
   "display": "standalone",
