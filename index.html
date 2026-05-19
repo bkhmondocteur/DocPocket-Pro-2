@@ -6,205 +6,651 @@
     <title>DocPocket Pro</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="rgb(0, 51, 153)">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <style>
-        :root { --primary-color: rgb(0, 51, 153); --primary-hover: rgb(0, 35, 110); --bg-color: #F4F7F6; --radius: 8px; }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-        body { background-color: var(--bg-color); line-height: 1.5; overflow-x: hidden; }
+        /* =========================================
+           VARIABLES DE THÈME ET STYLE DE BASE
+           ========================================= */
+        :root {
+            --primary-color: rgb(0, 51, 153); 
+            --primary-hover: rgb(0, 35, 110);
+            --secondary-color: #001133; 
+            --bg-color: #F4F7F6;
+            --card-bg: #FFFFFF;
+            --text-main: #333333;
+            --text-muted: #666666;
+            --border-color: #E0E0E0;
+            --danger-color: #D32F2F;
+            --radius: 8px;
+            --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
+        body { background-color: var(--bg-color); color: var(--text-main); line-height: 1.5; overflow-x: hidden; }
+        h1, h2, h3, h4 { color: var(--secondary-color); }
         .hidden { display: none !important; }
 
-        /* Auth & Pin */
+        /* =========================================
+           ÉCRAN DE VERROUILLAGE & LICENCE
+           ========================================= */
         #auth-view { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--primary-color); display: flex; justify-content: center; align-items: center; z-index: 9999; padding: 1rem; }
-        .auth-card { background: white; padding: 2rem; border-radius: 12px; width: 100%; max-width: 400px; text-align: center; }
-        .auth-logo { width: 70px; height: 70px; margin-bottom: 1rem; }
-        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 250px; margin: 1rem auto; }
-        .key-btn { padding: 15px; border-radius: 50%; border: none; background: #e0e0e0; font-weight: bold; cursor: pointer; }
+        .auth-card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 100%; max-width: 400px; text-align: center; }
+        .auth-logo { width: 70px; height: 70px; object-fit: contain; margin-bottom: 1rem; border-radius: var(--radius); }
+        .auth-card h2 { margin-bottom: 1rem; color: var(--primary-color); font-size: 1.3rem; }
+        .pin-display { font-size: 2rem; letter-spacing: 0.5rem; margin: 0.5rem 0; height: 40px; color: var(--secondary-color); font-weight: bold; }
+        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 1rem; max-width: 250px; margin-left: auto; margin-right: auto; }
+        .key-btn { background: var(--bg-color); border: none; border-radius: 50%; width: 55px; height: 55px; font-size: 1.3rem; font-weight: bold; color: var(--secondary-color); cursor: pointer; margin: 0 auto; transition: background 0.1s; }
+        .key-btn:active { background: #d0d0d0; }
+        .bio-btn { background: transparent; border: 2px solid var(--primary-color); color: var(--primary-color); padding: 0.7rem; border-radius: var(--radius); width: 100%; font-size: 0.95rem; font-weight: bold; cursor: pointer; margin-top: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px; }
+
+        /* =========================================
+           STRUCTURE DE L'APPLICATION (RESPONSIVE)
+           ========================================= */
+        .app-header { background-color: var(--primary-color); color: white; padding: 0.8rem 1rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex-wrap: wrap; gap: 0.5rem; }
+        .logo-container { display: flex; align-items: center; gap: 10px; }
+        .header-logo { width: 32px; height: 32px; object-fit: contain; border-radius: 6px; background: white; padding: 2px; }
+        .app-header h1 { font-size: 1.2rem; margin: 0;}
+        .header-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
+        #date-display { font-size: 0.85rem; }
         
-        /* App Layout */
-        .app-header { background-color: var(--primary-color); color: white; padding: 0.8rem; display: flex; justify-content: space-between; align-items: center; }
-        .container { padding: 1rem; max-width: 800px; margin: auto; }
-        .btn { background-color: var(--primary-color); color: white; border: none; padding: 0.8rem; border-radius: var(--radius); width: 100%; margin-bottom: 0.5rem; }
-        .btn-outline { background: transparent; border: 1px solid var(--primary-color); color: var(--primary-color); }
-        .btn-danger { background: transparent; border: 1px solid #d32f2f; color: #d32f2f; }
-        .form-control { width: 100%; padding: 0.7rem; margin-bottom: 1rem; border: 1px solid #ccc; border-radius: var(--radius); }
-        .visit-card { background: white; padding: 1rem; margin-bottom: 1rem; border-radius: var(--radius); border-left: 4px solid var(--primary-color); }
-        .backup-panel { background: #eef5f6; padding: 1rem; border-radius: var(--radius); margin-bottom: 1rem; }
+        .container { max-width: 1200px; margin: 1rem auto; padding: 0 0.5rem; }
+
+        /* COMPOSANTS */
+        .btn { background-color: var(--primary-color); color: white; border: none; padding: 0.6rem 1rem; border-radius: var(--radius); cursor: pointer; font-size: 0.95rem; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; transition: 0.2s;}
+        .btn:hover { background-color: var(--primary-hover); }
+        .btn-outline { background-color: transparent; color: var(--primary-color); border: 1px solid var(--primary-color); }
+        .btn-outline:hover { background-color: var(--primary-color); color: white; }
+        .btn-danger { background-color: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); }
+        .btn-danger:hover { background-color: var(--danger-color); color: white; }
+        .btn-refresh { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 0.3rem 0.6rem; font-size: 0.8rem; border-radius: 4px; }
         
-        /* PDF Containers */
-        .pdf-container { display: none; padding: 20px; }
+        .form-group { margin-bottom: 0.8rem; display: flex; flex-direction: column; width: 100%; }
+        .form-group label { font-weight: 600; margin-bottom: 0.2rem; color: var(--secondary-color); font-size: 0.85rem; }
+        .form-control { padding: 0.6rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.95rem; background-color: #fafafa; transition: border-color 0.2s; width: 100%; }
+        .form-control:focus { outline: none; border-color: var(--primary-color); background-color: white; box-shadow: 0 0 0 2px rgba(0, 90, 111, 0.1); }
+        textarea.form-control { resize: vertical; min-height: 60px; }
+
+        /* DASHBOARD MOBILE FIRST */
+        .dashboard-controls { display: flex; flex-direction: column; gap: 0.8rem; margin-bottom: 1.5rem; }
+        .visits-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 2rem; }
+        .visit-card { background: var(--card-bg); padding: 1rem; border-radius: var(--radius); box-shadow: var(--shadow); border-left: 4px solid var(--primary-color); display: flex; flex-direction: column; }
+        .visit-card-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+        .visit-card-body { flex: 1; margin-bottom: 1rem; display: flex; flex-direction: column; gap: 0.3rem;}
+        .visit-card-actions { display: flex; gap: 0.5rem; justify-content: flex-end; flex-wrap: wrap; }
+        .visit-card-actions .btn { flex: 1; padding: 0.4rem; font-size: 0.8rem; }
+        
+        .backup-panel { background: #eef5f6; padding: 1rem; border-radius: var(--radius); border: 1px dashed var(--primary-color); display: flex; flex-direction: column; gap: 0.8rem; margin-top: 1rem; }
+        .backup-actions { display: flex; gap: 0.5rem; width: 100%; flex-wrap: wrap;}
+        .backup-actions .btn { flex: 1; font-size: 0.85rem; padding: 0.5rem; min-width: 120px;}
+        
+        /* FORMULAIRE MOBILE FIRST */
+        .form-section { background: var(--card-bg); padding: 1rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1rem; }
+        .form-section h2 { border-bottom: 2px solid var(--bg-color); padding-bottom: 0.4rem; margin-bottom: 1rem; font-size: 1.1rem; }
+        .grid-2, .grid-3 { display: grid; grid-template-columns: 1fr; gap: 0.5rem; }
+        
+        .form-actions { display: flex; flex-direction: column; gap: 0.5rem; position: sticky; bottom: 0; background: var(--bg-color); padding: 0.8rem 0.5rem; border-top: 1px solid var(--border-color); z-index: 10; margin-left: -0.5rem; margin-right: -0.5rem; }
+        .form-actions .btn { width: 100%; }
+
+        /* =========================================
+           MÉDIA QUERIES (TABLETTES & PC)
+           ========================================= */
+        @media (min-width: 768px) {
+            .container { padding: 0 1rem; margin: 2rem auto; }
+            .dashboard-controls { flex-direction: row; }
+            .search-bar { width: auto; flex: 1; max-width: 400px; }
+            .visits-grid { grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 1.5rem; }
+            .visit-card { padding: 1.5rem; }
+            .visit-card-actions .btn { flex: none; padding: 0.4rem 0.8rem; }
+            .backup-panel { flex-direction: row; justify-content: space-between; align-items: center; padding: 1.5rem; }
+            .backup-actions { width: auto; flex-wrap: nowrap; }
+            .form-section { padding: 2rem; margin-bottom: 2rem; }
+            .form-section h2 { font-size: 1.3rem; margin-bottom: 1.5rem; }
+            .grid-2 { grid-template-columns: 1fr 1fr; gap: 1rem; }
+            .grid-3 { grid-template-columns: repeat(3, 1fr); gap: 1rem; }
+            .form-group { margin-bottom: 1.2rem; }
+            .form-actions { flex-direction: row; justify-content: flex-end; padding: 1rem 0; margin: 0; background: transparent; border:none; position: static;}
+            .form-actions .btn { width: auto; }
+        }
+
+        /* =========================================
+           OPTIMISATION IMPRESSION PRO (PDF)
+           ========================================= */
+        #print-view, #print-report-view { display: none; }
+        
+        @media print {
+            @page { margin: 0; }
+            body { background: white; color: black; font-size: 11pt; padding: 15mm; overflow: visible; }
+            #app-ui, #auth-view { display: none !important; }
+            
+            body.print-single #print-view { display: block !important; width: 100%; }
+            body.print-monthly #print-report-view { display: block !important; width: 100%; }
+            
+            .print-header { text-align: center; border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center;}
+            .print-logo { width: 60px; height: 60px; object-fit: contain; margin-bottom: 5px; }
+            .print-header h1 { font-size: 16pt; margin-bottom: 5px; }
+            
+            .print-section { display: block; width: 100%; margin-bottom: 15px; page-break-inside: avoid; }
+            .print-section h3 { color: black; border-bottom: 1px solid #ccc; padding-bottom: 2px; margin-bottom: 5px; font-size: 12pt; text-transform: uppercase; }
+            .print-row { display: flex; flex-wrap: wrap; margin-bottom: 5px; }
+            .print-col { flex: 1; min-width: 180px; }
+            .print-label { font-weight: bold; margin-right: 5px; }
+            .print-value { white-space: pre-wrap; }
+        }
     </style>
 </head>
 <body>
 
-    <div id="auth-view">
+    <div id="auth-view" class="hidden">
         <div class="auth-card">
-            <img class="auth-logo" src="icon-512.png" alt="Logo">
+            <img class="auth-logo" src="icon-512.png" alt="Logo Cabinet" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23003399\'><path d=\'M19 10.5h-5.5V5h-3v5.5H5v3h5.5V19h3v-5.5H19v-3z\'/></svg>'">
+            
             <div id="auth-license-section" class="hidden">
-                <input type="text" id="license-key" class="form-control" placeholder="DOCPRO-xxxxxx-2026">
-                <button class="btn" onclick="auth.checkLicense()">Activer</button>
+                <h2>Activation DocPocket</h2>
+                <p style="font-size: 0.85rem; margin-bottom: 1rem; color: var(--text-muted);">Veuillez entrer votre clé de licence nominative.</p>
+                <input type="text" id="license-key" class="form-control" placeholder="DOCPRO-xxxxxx-2026" style="width:100%; margin-bottom: 1rem; text-align: center;">
+                <button class="btn" style="width:100%; justify-content: center;" onclick="auth.checkLicense()">Activer ma licence</button>
             </div>
+
             <div id="auth-pin-section" class="hidden">
-                <h2 id="pin-title">Code PIN</h2>
-                <div id="pin-dots" style="font-size: 2rem; margin: 10px 0;"></div>
-                <div class="keypad" id="numpad">
-                    <button class="key-btn" onclick="auth.pressPin(1)">1</button><button class="key-btn" onclick="auth.pressPin(2)">2</button><button class="key-btn" onclick="auth.pressPin(3)">3</button>
-                    <button class="key-btn" onclick="auth.pressPin(4)">4</button><button class="key-btn" onclick="auth.pressPin(5)">5</button><button class="key-btn" onclick="auth.pressPin(6)">6</button>
-                    <button class="key-btn" onclick="auth.pressPin(7)">7</button><button class="key-btn" onclick="auth.pressPin(8)">8</button><button class="key-btn" onclick="auth.pressPin(9)">9</button>
-                    <button class="key-btn" onclick="auth.clearPin()">C</button><button class="key-btn" onclick="auth.pressPin(0)">0</button><button class="key-btn" onclick="auth.submitPin()">OK</button>
+                <h2 id="pin-title">Entrez votre Code PIN</h2>
+                <div class="pin-display" id="pin-dots"></div>
+                <div class="keypad">
+                    <button class="key-btn" onclick="auth.pressPin(1)">1</button>
+                    <button class="key-btn" onclick="auth.pressPin(2)">2</button>
+                    <button class="key-btn" onclick="auth.pressPin(3)">3</button>
+                    <button class="key-btn" onclick="auth.pressPin(4)">4</button>
+                    <button class="key-btn" onclick="auth.pressPin(5)">5</button>
+                    <button class="key-btn" onclick="auth.pressPin(6)">6</button>
+                    <button class="key-btn" onclick="auth.pressPin(7)">7</button>
+                    <button class="key-btn" onclick="auth.pressPin(8)">8</button>
+                    <button class="key-btn" onclick="auth.pressPin(9)">9</button>
+                    <button class="key-btn" onclick="auth.clearPin()">C</button>
+                    <button class="key-btn" onclick="auth.pressPin(0)">0</button>
+                    <button class="key-btn" onclick="auth.submitPin()">OK</button>
                 </div>
-                <button id="btn-cancel-change" class="btn btn-danger hidden" onclick="auth.cancelChangePin()">Annuler</button>
+                <button id="btn-biometric" class="bio-btn hidden" onclick="auth.useBiometrics()">
+                    🔒 Empreinte / Face ID
+                </button>
+                <button id="btn-cancel-change" class="btn btn-outline hidden" style="width:100%; margin-top:10px;" onclick="auth.cancelChangePin()">Annuler</button>
             </div>
         </div>
     </div>
 
     <div id="app-ui" class="hidden">
         <header class="app-header">
-            <h1 id="app-title-display" style="font-size: 1rem;">DocPocket Pro</h1>
-            <button class="btn" style="width: auto;" onclick="auth.lockApp()">🔒</button>
-        </header>
-        <div class="container">
-            <button class="btn" onclick="app.showForm()">➕ Nouvelle Consultation</button>
-            <div id="visits-list"></div>
-            <div class="backup-panel">
-                <input type="month" id="report-month" class="form-control">
-                <button class="btn" onclick="app.generateMonthlyReport()">📊 Rapport Mensuel PDF</button>
-                <button class="btn btn-outline" onclick="app.exportBackup()">📥 Exporter Données</button>
-                <button class="btn btn-outline" onclick="document.getElementById('import-file').click()">📤 Restaurer</button>
-                <input type="file" id="import-file" style="display:none" onchange="app.importBackup(event)">
-                <button class="btn btn-outline" style="border-color:orange; color:orange;" onclick="auth.startChangePin()">🔑 Changer PIN</button>
+            <div class="logo-container">
+                <img class="header-logo" src="icon-512.png" alt="Logo" onerror="this.style.display='none'">
+                <h1 id="app-title-display">DocPocket Pro</h1>
             </div>
+            <div class="header-actions">
+                <span id="date-display"></span>
+                <button class="btn btn-refresh" onclick="app.purgeCacheAndReload()" title="Rafraîchir">🔄</button>
+                <button class="btn btn-refresh" onclick="auth.lockApp()" title="Verrouiller" style="border-color: #ff9999; color: #ff9999;">🔒</button>
+            </div>
+        </header>
+
+        <div class="container">
+            <main id="dashboard-view">
+                
+                <div id="pwa-install-banner" class="hidden" style="background: #e3f2fd; padding: 1rem; border-radius: var(--radius); margin-bottom: 1.5rem; text-align: center; border: 1px solid #90caf9;">
+                    <p style="margin-bottom: 0.5rem; font-weight: bold; color: #1565c0;">📱 Profitez de l'expérience plein écran !</p>
+                    <p style="font-size: 0.85rem; margin-bottom: 1rem; color: #444;">Installez DocPocket sur votre appareil pour faire disparaître la barre d'adresse du navigateur.</p>
+                    <button class="btn" onclick="app.installPWA()">Installer l'application</button>
+                </div>
+
+                <div class="dashboard-controls">
+                    <button class="btn" onclick="app.showForm()" style="font-size: 1.1rem; padding: 0.8rem;">➕ Nouvelle Consultation</button>
+                    <input type="text" id="search-input" class="form-control search-bar" placeholder="Rechercher un patient...">
+                </div>
+                
+                <div id="visits-list" class="visits-grid"></div>
+
+                <div class="backup-panel">
+                    <div>
+                        <strong>📊 Rapport Mensuel</strong>
+                        <p>Bilan comptable des honoraires.</p>
+                    </div>
+                    <div class="backup-actions">
+                        <input type="month" id="report-month" class="form-control" style="flex:1; padding: 0.5rem;">
+                        <button class="btn" onclick="app.generateMonthlyReport()" style="flex:1;">Générer</button>
+                    </div>
+                </div>
+
+                <div class="backup-panel">
+                    <div>
+                        <strong>⚙️ Paramètres & Sécurité</strong>
+                        <p>Sauvegarde, restauration et PIN.</p>
+                    </div>
+                    <div class="backup-actions">
+                        <button class="btn btn-outline" onclick="app.exportBackup()">📥 Exporter</button>
+                        <input type="file" id="import-file" style="display:none" accept=".json" onchange="app.importBackup(event)">
+                        <button class="btn btn-outline" onclick="document.getElementById('import-file').click()">📤 Restaurer</button>
+                        <button class="btn btn-outline" style="border-color: #f57c00; color: #f57c00;" onclick="auth.startChangePin()">🔑 Changer PIN</button>
+                    </div>
+                </div>
+            </main>
+
+            <main id="form-view" class="hidden">
+                <button class="btn btn-outline" onclick="app.showDashboard()" style="margin-bottom: 1rem; width: 100%;">← Retour au tableau de bord</button>
+                <form id="consultation-form" onsubmit="app.saveVisit(event)">
+                    <input type="hidden" id="visit-id">
+                    
+                    <section class="form-section">
+                        <h2>Démographie</h2>
+                        <div class="grid-2">
+                            <div class="form-group"><label>Nom et Prénom *</label><input type="text" id="patient-name" class="form-control" required></div>
+                            <div class="form-group"><label>Origine / Ville</label><input type="text" id="patient-origin" class="form-control"></div>
+                        </div>
+                        <div class="grid-3">
+                            <div class="form-group"><label>Date de naissance</label><input type="text" id="patient-dob" class="form-control" placeholder="JJ/MM/AAAA" maxlength="10" inputmode="numeric" oninput="app.formatDOBAndCalculateAge(this)"></div>
+                            <div class="form-group"><label>Âge</label><input type="text" id="patient-age" class="form-control" placeholder="Calcul auto..." oninput="app.calculateApproximateDOB(this)"></div>
+                            <div class="form-group"><label>Téléphone</label><input type="tel" id="patient-phone" class="form-control"></div>
+                        </div>
+                    </section>
+                    
+                    <section class="form-section">
+                        <h2>Clinique</h2>
+                        <div class="form-group"><label>Motif *</label><input type="text" id="visit-reason" class="form-control" required></div>
+                        <div class="grid-2">
+                            <div class="form-group"><label>Antécédents</label><textarea id="medical-history" class="form-control"></textarea></div>
+                            <div class="form-group"><label>Allergies</label><textarea id="allergies" class="form-control"></textarea></div>
+                        </div>
+                    </section>
+                    
+                    <section class="form-section">
+                        <h2>Signes Vitaux</h2>
+                        <div class="grid-3">
+                            <div class="form-group"><label>TA</label><input type="text" id="vital-bp" class="form-control" placeholder="ex: 12/8"></div>
+                            <div class="form-group"><label>Pouls</label><input type="text" id="vital-pulse" class="form-control" placeholder="bpm"></div>
+                            <div class="form-group"><label>FR</label><input type="text" id="vital-rr" class="form-control" placeholder="cpm"></div>
+                            <div class="form-group"><label>Température</label><input type="text" id="vital-temp" class="form-control" placeholder="°C"></div>
+                            <div class="form-group"><label>SpO2</label><input type="text" id="vital-spo2" class="form-control" placeholder="%"></div>
+                        </div>
+                    </section>
+                    
+                    <section class="form-section">
+                        <h2>Examen</h2>
+                        <div class="grid-2">
+                            <div class="form-group"><label>Plan général</label><textarea id="exam-general" class="form-control"></textarea></div>
+                            <div class="form-group"><label>Hémodynamique</label><textarea id="exam-hemo" class="form-control"></textarea></div>
+                            <div class="form-group"><label>Respiratoire</label><textarea id="exam-resp" class="form-control"></textarea></div>
+                            <div class="form-group"><label>Neurologique</label><textarea id="exam-neuro" class="form-control"></textarea></div>
+                            <div class="form-group"><label>Abdominal</label><textarea id="exam-abdo" class="form-control"></textarea></div>
+                            <div class="form-group"><label>Reste de l'examen</label><textarea id="exam-other" class="form-control"></textarea></div>
+                        </div>
+                    </section>
+                    
+                    <section class="form-section">
+                        <h2>Prescription & Facturation</h2>
+                        <div class="form-group"><label>Traitement prescrit</label><textarea id="prescription" class="form-control" style="min-height: 80px;"></textarea></div>
+                        <div class="form-group" style="max-width: 250px;"><label>Honoraires (DT)</label><input type="number" id="visit-fee" class="form-control" step="any"></div>
+                    </section>
+                    
+                    <div class="form-actions">
+                        <button type="submit" class="btn">💾 Enregistrer la consultation</button>
+                    </div>
+                </form>
+            </main>
         </div>
     </div>
 
-    <div id="print-view" class="pdf-container">
-        <h1>Rapport de Consultation</h1>
-        <p id="p-date"></p>
-        <p id="p-name"></p>
-        <p id="p-reason"></p>
-        <p id="p-fee"></p>
+    <div id="print-view">
+        <div class="print-header">
+            <img class="print-logo" src="icon-512.png" alt="Logo" onerror="this.style.display='none'">
+            <h1>Rapport de Consultation</h1><p><span id="print-date-display"></span></p>
+        </div>
+        <div class="print-section">
+            <div class="print-row"><div class="print-col"><span class="print-label">Nom:</span><span id="p-name"></span></div><div class="print-col"><span class="print-label">Âge:</span><span id="p-age"></span></div></div>
+            <div class="print-row"><div class="print-col"><span class="print-label">Tél:</span><span id="p-phone"></span></div><div class="print-col"><span class="print-label">Motif:</span><span id="p-reason"></span></div></div>
+        </div>
+        <div class="print-section"><h3>Données</h3><p><strong>ATCD:</strong> <span id="p-history"></span> | <strong>Allergies:</strong> <span id="p-allergies"></span></p><p><strong>TA:</strong> <span id="p-bp"></span> | <strong>Pouls:</strong> <span id="p-pulse"></span> | <strong>Temp:</strong> <span id="p-temp"></span> | <strong>SpO2:</strong> <span id="p-spo2"></span></p></div>
+        <div class="print-section"><h3>Examen</h3><p><span id="p-exam-gen"></span> <span id="p-exam-hemo"></span> <span id="p-exam-resp"></span> <span id="p-exam-neuro"></span> <span id="p-exam-abdo"></span> <span id="p-exam-other"></span></p></div>
+        <div class="print-section"><h3>Traitement</h3><p id="p-prescription" class="print-value"></p></div>
+        <div style="margin-top:20px"><p><strong>Honoraires :</strong> <span id="p-fee"></span></p></div>
+        <div style="text-align:right; margin-top:30px;"><p><strong>Signature :</strong></p><p id="print-signature-name" style="font-weight:bold;"></p></div>
     </div>
-    <div id="print-report-view" class="pdf-container">
-        <h1>Journal des Honoraires</h1>
-        <table id="report-table"></table>
-        <p id="report-total"></p>
+
+    <div id="print-report-view">
+        <div class="print-header">
+            <img class="print-logo" src="icon-512.png" alt="Logo" onerror="this.style.display='none'">
+            <h1>Journal des Honoraires</h1><p>Période : <span id="report-period-display"></span></p>
+        </div>
+        <table style="width:100%; border-collapse:collapse; margin-top:20px;">
+            <thead><tr style="border-bottom:2px solid black; text-align:left;"><th>Date</th><th>Patient</th><th>Motif</th><th style="text-align:right;">Montant</th></tr></thead>
+            <tbody id="report-table-body"></tbody>
+        </table>
+        <div style="margin-top:20px; text-align:right; font-size:14pt; font-weight:bold;">Total : <span id="report-total-sum"></span> DT</div>
+        <div style="text-align:right; margin-top:30px;"><p><strong>Clôturé par :</strong></p><p id="report-signature-name" style="font-weight:bold;"></p></div>
     </div>
 
     <script>
-        // Crypto Logic
         const cryptoUtils = {
             async deriveKey(pin, salt) {
-                const b = new TextEncoder().encode(pin);
-                const k = await crypto.subtle.importKey("raw", b, { name: "PBKDF2" }, false, ["deriveKey"]);
-                return crypto.subtle.deriveKey({ name: "PBKDF2", salt: salt, iterations: 100000, hash: "SHA-256" }, k, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+                const pinBuffer = new TextEncoder().encode(pin);
+                const baseKey = await crypto.subtle.importKey("raw", pinBuffer, { name: "PBKDF2" }, false, ["deriveKey"]);
+                return crypto.subtle.deriveKey({ name: "PBKDF2", salt: salt, iterations: 100000, hash: "SHA-256" }, baseKey, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
             },
-            async encrypt(t, p) {
-                const b = new TextEncoder().encode(t); const s = crypto.getRandomValues(new Uint8Array(16)); const iv = crypto.getRandomValues(new Uint8Array(12));
-                const key = await this.deriveKey(p, s);
-                const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, b);
-                const c = new Uint8Array(s.length + iv.length + ct.byteLength);
-                c.set(s, 0); c.set(iv, s.length); c.set(new Uint8Array(ct), s.length + iv.length);
-                return btoa(String.fromCharCode(...c));
+            async encrypt(text, pin) {
+                const dataBuffer = new TextEncoder().encode(text);
+                const salt = crypto.getRandomValues(new Uint8Array(16)); const iv = crypto.getRandomValues(new Uint8Array(12));
+                const key = await this.deriveKey(pin, salt);
+                const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, dataBuffer);
+                const combined = new Uint8Array(salt.length + iv.length + ciphertext.byteLength);
+                combined.set(salt, 0); combined.set(iv, salt.length); combined.set(new Uint8Array(ciphertext), salt.length + iv.length);
+                let bin = ''; combined.forEach(b => bin += String.fromCharCode(b)); return btoa(bin);
             },
-            async decrypt(cb, p) {
-                const bin = Uint8Array.from(atob(cb), c => c.charCodeAt(0));
-                const s = bin.slice(0, 16); const iv = bin.slice(16, 28); const ct = bin.slice(28);
-                const key = await this.deriveKey(p, s);
-                return new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, key, ct));
+            async decrypt(combinedBase64, pin) {
+                const binStr = atob(combinedBase64); const combined = new Uint8Array(binStr.length);
+                for (let i = 0; i < binStr.length; i++) combined[i] = binStr.charCodeAt(i);
+                const salt = combined.slice(0, 16); const iv = combined.slice(16, 28); const ciphertext = combined.slice(28);
+                const key = await this.deriveKey(pin, salt);
+                const decryptedBuffer = await crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, key, ciphertext);
+                return new TextDecoder().decode(decryptedBuffer);
             }
         };
 
-        function getFileTimestamp() { return new Date().toISOString().replace(/[:.]/g, '-').slice(0, 16); }
-
-        async function exportToPDF(elementId, baseName) {
-            const el = document.getElementById(elementId);
-            el.style.display = 'block';
-            await html2pdf().set({ margin: 10, filename: `${baseName}_${getFileTimestamp()}.pdf`, html2canvas: { scale: 2 }, jsPDF: { format: 'a4' } }).from(el).save();
-            el.style.display = 'none';
-        }
-
         const auth = {
-            currentPin: "", mode: "login", newPin: "",
+            currentPinInput: "", mode: "login", tempNewPin: "",
+
             init() {
+                // RÉTABLISSEMENT DE LA SÉCURITÉ COMPLÈTE
                 const docName = localStorage.getItem('docpocket_doc_name');
-                if(!docName) { this.mode='license'; document.getElementById('auth-license-section').classList.remove('hidden'); }
-                else if(!localStorage.getItem('docpocket_pin_configured')) { this.mode='setup'; document.getElementById('auth-pin-section').classList.remove('hidden'); }
-                else { this.mode='login'; document.getElementById('auth-pin-section').classList.remove('hidden'); }
+                const isPinConfigured = localStorage.getItem('docpocket_pin_configured');
+
                 document.getElementById('auth-view').classList.remove('hidden');
-            },
-            checkLicense() {
-                const k = document.getElementById('license-key').value;
-                if(k.startsWith('DOCPRO-')) { localStorage.setItem('docpocket_doc_name', atob(k.split('-')[1])); this.init(); }
-            },
-            pressPin(n) { if(this.currentPin.length < 4) { this.currentPin += n; document.getElementById('pin-dots').innerText = "*".repeat(this.currentPin.length); } },
-            clearPin() { this.currentPin = ""; document.getElementById('pin-dots').innerText = ""; },
-            async submitPin() {
-                if(this.mode === 'setup') {
-                    localStorage.setItem('docpocket_pin_configured', 'true');
-                    app.pin = this.currentPin;
-                    await app.saveData();
-                    this.unlock();
-                } else if(this.mode === 'login') {
-                    try { await cryptoUtils.decrypt(localStorage.getItem(app.STORAGE_KEY), this.currentPin); app.pin = this.currentPin; this.unlock(); }
-                    catch(e) { alert("PIN erroné"); this.clearPin(); }
-                } else if(this.mode === 'change_pin_old') {
-                    if(this.currentPin === app.pin) { this.mode = 'change_pin_new'; this.clearPin(); document.getElementById('pin-title').innerText = "Nouveau PIN"; }
-                    else { alert("PIN incorrect"); this.clearPin(); }
-                } else if(this.mode === 'change_pin_new') {
-                    this.newPin = this.currentPin; this.mode = 'change_pin_confirm'; this.clearPin(); document.getElementById('pin-title').innerText = "Confirmez";
-                } else if(this.mode === 'change_pin_confirm') {
-                    if(this.currentPin === this.newPin) { app.pin = this.newPin; await app.saveData(); alert("Succès"); this.unlock(); }
-                    else { alert("Erreur"); this.mode = 'change_pin_new'; this.clearPin(); }
+                document.getElementById('app-ui').classList.add('hidden');
+                document.getElementById('btn-cancel-change').classList.add('hidden');
+
+                if (!docName) {
+                    this.mode = 'license';
+                    document.getElementById('auth-license-section').classList.remove('hidden');
+                    document.getElementById('auth-pin-section').classList.add('hidden');
+                } else if (!isPinConfigured) {
+                    this.mode = 'setup';
+                    document.getElementById('auth-pin-section').classList.remove('hidden');
+                    document.getElementById('auth-license-section').classList.add('hidden');
+                    document.getElementById('pin-title').innerText = "Créez un Code PIN (4 chiffres)";
+                } else {
+                    this.mode = 'login';
+                    document.getElementById('auth-pin-section').classList.remove('hidden');
+                    document.getElementById('auth-license-section').classList.add('hidden');
+                    document.getElementById('pin-title').innerText = "Entrez votre Code PIN";
+                    
+                    if (window.isSecureContext && navigator.credentials && window.PublicKeyCredential) {
+                        document.getElementById('btn-biometric').classList.remove('hidden');
+                    }
                 }
             },
-            unlock() { document.getElementById('auth-view').classList.add('hidden'); document.getElementById('app-ui').classList.remove('hidden'); app.init(); },
-            lockApp() { location.reload(); },
-            startChangePin() { this.mode = 'change_pin_old'; document.getElementById('auth-view').classList.remove('hidden'); document.getElementById('app-ui').classList.add('hidden'); document.getElementById('btn-cancel-change').classList.remove('hidden'); this.clearPin(); }
+
+            checkLicense() {
+                const key = document.getElementById('license-key').value.trim(); const parts = key.split('-');
+                if (parts.length === 3 && parts[0] === 'DOCPRO' && parts[2] === '2026') {
+                    try {
+                        localStorage.setItem('docpocket_doc_name', "Dr " + atob(parts[1]));
+                        this.init(); 
+                    } catch(e) { alert("Clé de licence incorrecte."); }
+                } else { alert("Format de licence invalide."); }
+            },
+
+            pressPin(num) { if (this.currentPinInput.length < 4) { this.currentPinInput += num; this.updatePinDisplay(); } },
+            clearPin() { this.currentPinInput = ""; this.updatePinDisplay(); },
+            updatePinDisplay() { document.getElementById('pin-dots').innerText = "*".repeat(this.currentPinInput.length); },
+
+            // --- NOUVEAU : SYSTÈME DE CHANGEMENT DE PIN ---
+            startChangePin() {
+                this.mode = 'change_pin_old';
+                document.getElementById('app-ui').classList.add('hidden');
+                document.getElementById('auth-view').classList.remove('hidden');
+                document.getElementById('auth-pin-section').classList.remove('hidden');
+                document.getElementById('btn-biometric').classList.add('hidden');
+                document.getElementById('btn-cancel-change').classList.remove('hidden');
+                document.getElementById('pin-title').innerText = "Saisissez l'ANCIEN code PIN";
+                this.clearPin();
+            },
+
+            cancelChangePin() {
+                this.clearPin();
+                document.getElementById('btn-cancel-change').classList.add('hidden');
+                this.unlockApp(); // Retourne à l'application car déjà authentifié
+            },
+
+            async submitPin() {
+                if (this.currentPinInput.length !== 4) return alert("Le code doit faire 4 chiffres.");
+
+                // 1. Première configuration
+                if (this.mode === 'setup') {
+                    try {
+                        const encryptedEmpty = await cryptoUtils.encrypt("[]", this.currentPinInput);
+                        localStorage.setItem(app.STORAGE_KEY, encryptedEmpty);
+                        localStorage.setItem('docpocket_pin_configured', 'true');
+                        app.currentPin = this.currentPinInput;
+                        this.unlockApp();
+                    } catch(e) { alert("Erreur d'initialisation sécurisée."); }
+                
+                // 2. Connexion normale
+                } else if (this.mode === 'login') {
+                    try {
+                        const encryptedData = localStorage.getItem(app.STORAGE_KEY);
+                        if (encryptedData) {
+                            const decryptedText = await cryptoUtils.decrypt(encryptedData, this.currentPinInput);
+                            app.visits = JSON.parse(decryptedText);
+                        } else { app.visits = []; }
+                        app.currentPin = this.currentPinInput;
+                        this.unlockApp();
+                    } catch (error) {
+                        alert("Code PIN incorrect."); this.clearPin();
+                    }
+                
+                // 3. Changement de PIN : Vérification Ancien
+                } else if (this.mode === 'change_pin_old') {
+                    if (this.currentPinInput === app.currentPin) {
+                        this.mode = 'change_pin_new';
+                        document.getElementById('pin-title').innerText = "Saisissez le NOUVEAU PIN";
+                        this.clearPin();
+                    } else {
+                        alert("Ancien code PIN incorrect."); this.clearPin();
+                    }
+                
+                // 4. Changement de PIN : Saisie du Nouveau
+                } else if (this.mode === 'change_pin_new') {
+                    this.tempNewPin = this.currentPinInput;
+                    this.mode = 'change_pin_confirm';
+                    document.getElementById('pin-title').innerText = "Confirmez le NOUVEAU PIN";
+                    this.clearPin();
+
+                // 5. Changement de PIN : Confirmation et Re-Chiffrement
+                } else if (this.mode === 'change_pin_confirm') {
+                    if (this.currentPinInput === this.tempNewPin) {
+                        app.currentPin = this.tempNewPin;
+                        await app.saveData(); // Chiffre toute la base avec le nouveau PIN
+                        alert("✅ Code PIN modifié avec succès !");
+                        document.getElementById('btn-cancel-change').classList.add('hidden');
+                        this.unlockApp();
+                    } else {
+                        alert("Les codes ne correspondent pas. Recommencez.");
+                        this.mode = 'change_pin_new';
+                        document.getElementById('pin-title').innerText = "Saisissez le NOUVEAU PIN";
+                        this.clearPin();
+                    }
+                }
+            },
+
+            async useBiometrics() {
+                try {
+                    const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
+                    const credential = await navigator.credentials.get({ publicKey: { challenge: challenge, timeout: 60000, userVerification: "required" } });
+                    if (credential) {
+                        const bioToken = localStorage.getItem('docpocket_bio_token');
+                        if (bioToken) { this.currentPinInput = atob(bioToken); await this.submitPin(); }
+                        else { alert("Connectez-vous d'abord une fois par code PIN."); }
+                    }
+                } catch (error) { alert("Authentification biométrique indisponible ou annulée."); }
+            },
+
+            unlockApp() {
+                localStorage.setItem('docpocket_bio_token', btoa(app.currentPin)); // Maj de la biométrie avec le PIN actuel
+                document.getElementById('auth-view').classList.add('hidden');
+                document.getElementById('app-ui').classList.remove('hidden');
+                app.init(); 
+            },
+
+            lockApp() { 
+                app.currentPin = ""; app.visits = []; // Purge de la mémoire vive
+                document.getElementById('app-ui').classList.add('hidden'); 
+                this.init(); // Relance l'écran de login
+                this.clearPin(); 
+            }
         };
 
         const app = {
-            visits: [], STORAGE_KEY: 'data', pin: '', doctorName: '',
-            init() { 
-                this.doctorName = localStorage.getItem('docpocket_doc_name'); 
-                document.getElementById('app-title-display').textContent = `DocPocket Pro - ${this.doctorName}`;
-                this.loadData();
-            },
-            async loadData() {
-                const raw = localStorage.getItem(this.STORAGE_KEY);
-                if(raw) this.visits = JSON.parse(await cryptoUtils.decrypt(raw, this.pin));
-                this.render();
-            },
-            async saveData() { localStorage.setItem(this.STORAGE_KEY, await cryptoUtils.encrypt(JSON.stringify(this.visits), this.pin)); },
-            render() { 
-                const list = document.getElementById('visits-list'); list.innerHTML = '';
-                this.visits.forEach(v => {
-                    list.innerHTML += `<div class="visit-card"><h3>${v.name}</h3><p>Honoraires: ${v.fee} DT</p><button class="btn btn-outline" onclick="app.generatePDF('${v.id}')">PDF</button></div>`;
+            visits: [], STORAGE_KEY: 'docpocket_visits_data', doctorName: '', currentPin: '', deferredPrompt: null,
+
+            init() {
+                this.doctorName = localStorage.getItem('docpocket_doc_name') || 'Dr';
+                document.getElementById('app-title-display').textContent = `DocPocket Pro`;
+                
+                if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+                
+                // Intercepter la demande d'installation PWA
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    this.deferredPrompt = e;
+                    document.getElementById('pwa-install-banner').classList.remove('hidden');
                 });
+                
+                const dateOptions = window.innerWidth < 768 ? { day: 'numeric', month: 'short' } : { weekday: 'long', day: 'numeric', month: 'long' };
+                document.getElementById('date-display').textContent = new Date().toLocaleDateString('fr-FR', dateOptions);
+                const now = new Date(); document.getElementById('report-month').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+                // Les données sont déjà chargées par auth.submitPin() lors du login
+                this.renderDashboard();
+                document.getElementById('search-input').addEventListener('input', (e) => this.renderDashboard(e.target.value.toLowerCase()));
             },
-            generatePDF(id) {
-                const v = this.visits.find(x => x.id === id);
-                document.getElementById('p-name').innerText = v.name;
-                document.getElementById('p-fee').innerText = v.fee + " DT";
-                exportToPDF('print-view', 'Consultation');
+
+            // --- NOUVEAU : INSTALLATION PWA ---
+            async installPWA() {
+                if (this.deferredPrompt) {
+                    this.deferredPrompt.prompt();
+                    const { outcome } = await this.deferredPrompt.userChoice;
+                    if (outcome === 'accepted') {
+                        document.getElementById('pwa-install-banner').classList.add('hidden');
+                    }
+                    this.deferredPrompt = null;
+                }
             },
-            showForm() { document.getElementById('dashboard-view').classList.add('hidden'); document.getElementById('form-view').classList.remove('hidden'); },
-            showDashboard() { document.getElementById('form-view').classList.add('hidden'); document.getElementById('dashboard-view').classList.remove('hidden'); },
-            async saveVisit(e) {
-                e.preventDefault();
-                const v = { id: Date.now().toString(), name: document.getElementById('patient-name').value, fee: document.getElementById('visit-fee').value, date: new Date().toISOString() };
-                this.visits.push(v); await this.saveData(); this.showDashboard(); this.render();
+
+            async purgeCacheAndReload() {
+                if (confirm("Rafraîchir l'application et vider le cache navigateur ?")) {
+                    try {
+                        if ('caches' in window) { const keys = await caches.keys(); await Promise.all(keys.map(k => caches.delete(k))); }
+                        if ('serviceWorker' in navigator) { const regs = await navigator.serviceWorker.getRegistrations(); for (let r of regs) await r.unregister(); }
+                        window.location.reload();
+                    } catch (err) { window.location.reload(); }
+                }
             },
+
+            async saveData() {
+                try {
+                    const encrypted = await cryptoUtils.encrypt(JSON.stringify(this.visits), this.currentPin);
+                    localStorage.setItem(this.STORAGE_KEY, encrypted);
+                } catch(e) { alert("Erreur lors du chiffrement des données."); }
+            },
+
+            generateMonthlyReport() {
+                const [year, month] = document.getElementById('report-month').value.split('-');
+                if(!year) return;
+                const filtered = this.visits.filter(v => new Date(v.date).getFullYear() == year && new Date(v.date).getMonth() == month - 1).sort((a, b) => new Date(a.date) - new Date(b.date));
+                if (filtered.length === 0) return alert("Aucun acte enregistré ce mois.");
+
+                document.getElementById('report-period-display').textContent = `${month}/${year}`;
+                document.getElementById('report-signature-name').textContent = this.doctorName;
+                
+                const tbody = document.getElementById('report-table-body'); tbody.innerHTML = '';
+                let total = 0;
+                filtered.forEach(v => {
+                    const f = parseFloat(v.fee) || 0; total += f;
+                    tbody.innerHTML += `<tr><td style="padding: 5px;">${new Date(v.date).toLocaleDateString('fr-FR')}</td><td style="padding: 5px;"><b>${v.name}</b></td><td style="padding: 5px;">${v.reason}</td><td style="text-align:right; padding: 5px;"><b>${f>0?f.toFixed(3)+' DT':'-'}</b></td></tr>`;
+                });
+                document.getElementById('report-total-sum').textContent = total.toFixed(3);
+                document.body.className = 'print-monthly'; window.print(); document.body.className = '';
+            },
+
             async exportBackup() {
-                const blob = new Blob([localStorage.getItem(this.STORAGE_KEY)], {type: "application/json"});
-                const a = document.createElement('a'); a.download = `DocPocket_Sauvegarde_${getFileTimestamp()}.json`; a.href = URL.createObjectURL(blob); a.click();
+                const data = localStorage.getItem(this.STORAGE_KEY); if(!data) return alert("Base vide.");
+                const blob = new Blob([data], { type: "application/json" });
+                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `DocPocket_Sauvegarde_${Date.now()}.json`;
+                document.body.appendChild(a); a.click(); document.body.removeChild(a);
             },
-            async importBackup(e) {
-                const r = new FileReader(); r.onload = (ev) => { localStorage.setItem(this.STORAGE_KEY, ev.target.result); location.reload(); };
-                r.readAsText(e.target.files[0]);
+
+            importBackup(e) {
+                const file = e.target.files[0]; if(!file) return;
+                const reader = new FileReader();
+                reader.onload = async (ev) => {
+                    try {
+                        const importedData = ev.target.result; 
+                        await cryptoUtils.decrypt(importedData, this.currentPin); // Vérifie si le PIN est compatible
+                        if (confirm("⚠️ Écraser les données actuelles avec cette sauvegarde ? Action définitive.")) { 
+                            localStorage.setItem(this.STORAGE_KEY, importedData); 
+                            alert("✅ Restauration réussie ! Redémarrage."); 
+                            window.location.reload(); 
+                        }
+                    } catch (error) { alert("❌ Restauration impossible : Ce fichier appartient à un autre code PIN ou est corrompu."); }
+                };
+                reader.readAsText(file);
+                e.target.value = ''; // Reset file input
+            },
+
+            showDashboard() { document.getElementById('form-view').classList.add('hidden'); document.getElementById('dashboard-view').classList.remove('hidden'); this.renderDashboard(); },
+            showForm(id = null) {
+                document.getElementById('dashboard-view').classList.add('hidden'); document.getElementById('form-view').classList.remove('hidden');
+                document.getElementById('consultation-form').reset(); document.getElementById('visit-id').value = '';
+                if (id) { const v = this.visits.find(v => v.id === id); if (v) ['id','name','origin','dob','age','phone','reason','history','allergies','bp','pulse','rr','temp','spo2','examGeneral','examHemo','examResp','examNeuro','examAbdo','examOther','prescription','fee'].forEach(k => { if(document.getElementById(k==='id'?'visit-id':(k==='fee'?'visit-fee':(document.getElementById(`patient-${k}`)?`patient-${k}`:(document.getElementById(`visit-${k}`)?`visit-${k}`:(document.getElementById(`vital-${k}`)?`vital-${k}`:(document.getElementById(`exam-${k.replace('exam','')}`.toLowerCase())?`exam-${k.replace('exam','')}`.toLowerCase():k))))))) document.getElementById(k==='id'?'visit-id':(k==='fee'?'visit-fee':(document.getElementById(`patient-${k}`)?`patient-${k}`:(document.getElementById(`visit-${k}`)?`visit-${k}`:(document.getElementById(`vital-${k}`)?`vital-${k}`:(document.getElementById(`exam-${k.replace('exam','')}`.toLowerCase())?`exam-${k.replace('exam','')}`.toLowerCase():k)))))).value = v[k]||''; }); }
+            },
+
+            formatDOBAndCalculateAge(input) {
+                let v = input.value.replace(/\D/g, ''); if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2); if (v.length > 5) v = v.slice(0, 5) + '/' + v.slice(5, 9); input.value = v;
+                if (v.length === 10) { const p = v.split('/'); const age = Math.abs(new Date(Date.now() - new Date(p[2], p[1]-1, p[0]).getTime()).getUTCFullYear() - 1970); document.getElementById('patient-age').value = age > 0 ? `${age} ans` : '< 1 an'; }
+            },
+            calculateApproximateDOB(input) { const v = input.value.replace(/\D/g, ''); if (v && !document.getElementById('patient-dob').value) document.getElementById('patient-dob').value = `01/01/${new Date().getFullYear() - parseInt(v, 10)}`; },
+
+            async saveVisit(e) {
+                e.preventDefault(); const isNew = !document.getElementById('visit-id').value;
+                const v = {
+                    id: isNew ? Date.now().toString() : document.getElementById('visit-id').value, date: isNew ? new Date().toISOString() : this.visits.find(x => x.id === document.getElementById('visit-id').value).date,
+                    name: document.getElementById('patient-name').value, origin: document.getElementById('patient-origin').value, dob: document.getElementById('patient-dob').value, age: document.getElementById('patient-age').value, phone: document.getElementById('patient-phone').value,
+                    reason: document.getElementById('visit-reason').value, history: document.getElementById('medical-history').value, allergies: document.getElementById('allergies').value,
+                    bp: document.getElementById('vital-bp').value, pulse: document.getElementById('vital-pulse').value, rr: document.getElementById('vital-rr').value, temp: document.getElementById('vital-temp').value, spo2: document.getElementById('vital-spo2').value,
+                    examGeneral: document.getElementById('exam-general').value, examHemo: document.getElementById('exam-hemo').value, examResp: document.getElementById('exam-resp').value, examNeuro: document.getElementById('exam-neuro').value, examAbdo: document.getElementById('exam-abdo').value, examOther: document.getElementById('exam-other').value,
+                    prescription: document.getElementById('prescription').value, fee: document.getElementById('visit-fee').value
+                };
+                if (isNew) this.visits.unshift(v); else this.visits[this.visits.findIndex(x => x.id === v.id)] = v;
+                await this.saveData(); this.showDashboard();
+            },
+
+            async deleteVisit(id) { if (confirm("Supprimer définitivement ce dossier médical ?")) { this.visits = this.visits.filter(v => v.id !== id); await this.saveData(); this.renderDashboard(); } },
+
+            generatePDF(id) {
+                const v = this.visits.find(x => x.id === id); if (!v) return;
+                document.getElementById('print-date-display').textContent = new Date(v.date).toLocaleDateString('fr-FR');
+                document.getElementById('print-signature-name').textContent = this.doctorName;
+                ['name','age','phone','reason','history','allergies','bp','pulse','temp','spo2','prescription'].forEach(k => { if(document.getElementById(`p-${k}`)) document.getElementById(`p-${k}`).textContent = v[k]||'-'; });
+                ['gen','hemo','resp','neuro','abdo','other'].forEach(k => { if(document.getElementById(`p-exam-${k}`)) document.getElementById(`p-exam-${k}`).textContent = v[`exam${k.charAt(0).toUpperCase()+k.slice(1)}`]? `${k.toUpperCase()}: ${v[`exam${k.charAt(0).toUpperCase()+k.slice(1)}`]} ` : ''; });
+                document.getElementById('p-fee').textContent = v.fee ? `${parseFloat(v.fee).toFixed(3)} DT` : 'Non facturé';
+                document.body.className = 'print-single'; window.print(); document.body.className = '';
+            },
+
+            renderDashboard(fStr = '') {
+                const list = document.getElementById('visits-list'); list.innerHTML = '';
+                const filtered = this.visits.filter(v => `${v.name} ${v.reason}`.toLowerCase().includes(fStr));
+                if (filtered.length === 0) { list.innerHTML = `<p style="text-align:center; padding:2rem; color:#666;">Aucune consultation trouvée.</p>`; return; }
+                filtered.forEach(v => {
+                    const fee = parseFloat(v.fee) || 0;
+                    list.innerHTML += `<div class="visit-card"><div class="visit-card-header"><h3 style="font-size: 1.05rem;">${v.name}</h3><span style="font-size:0.8rem; color:#666;">${new Date(v.date).toLocaleDateString('fr-FR')}</span></div><div class="visit-card-body"><p><strong>Motif :</strong> ${v.reason}</p><p style="color:var(--primary-color); font-weight:bold;">💵 Honoraires : ${fee>0?fee.toFixed(3)+' DT':'-'}</p></div><div class="visit-card-actions"><button class="btn btn-outline" onclick="app.generatePDF('${v.id}')">📄 PDF</button><button class="btn btn-outline" onclick="app.showForm('${v.id}')">✏️ Éditer</button><button class="btn btn-danger" onclick="app.deleteVisit('${v.id}')">🗑️</button></div></div>`;
+                });
             }
         };
 
-        window.onload = () => auth.init();
+        window.addEventListener('DOMContentLoaded', () => auth.init());
     </script>
 </body>
 </html>
