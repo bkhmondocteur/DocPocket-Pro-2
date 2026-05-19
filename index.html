@@ -292,7 +292,7 @@
             <h1>Journal des Honoraires</h1><p>Période : <span id="report-period-display"></span></p>
         </div>
         <table style="width:100%; border-collapse:collapse; margin-top:20px;">
-            <thead><tr style="border-bottom:2px solid black; text-align:left;"><th>Date</th><th>Patient</th><th style="text-align:right;">Montant</th></tr></thead>
+            <thead><tr style="border-bottom:2px solid black; text-align:left;"><th>Date</th><th>Patient</th><th>Motif</th><th style="text-align:right;">Montant</th></tr></thead>
             <tbody id="report-table-body"></tbody>
         </table>
         <div style="margin-top:20px; text-align:right; font-size:14pt; font-weight:bold;">Total : <span id="report-total-sum"></span> DT</div>
@@ -545,8 +545,7 @@
                 let total = 0;
                 filtered.forEach(v => {
                     const f = parseFloat(v.fee) || 0; total += f;
-                    // Retrait du motif de consultation de la génération HTML de la ligne
-                    tbody.innerHTML += `<tr><td style="padding: 5px; border-bottom: 1px solid #eee;">${new Date(v.date).toLocaleDateString('fr-FR')}</td><td style="padding: 5px; border-bottom: 1px solid #eee;"><b>${v.name}</b></td><td style="text-align:right; padding: 5px; border-bottom: 1px solid #eee;"><b>${f>0?f.toFixed(3)+' DT':'-'}</b></td></tr>`;
+                    tbody.innerHTML += `<tr><td style="padding: 5px; border-bottom: 1px solid #eee;">${new Date(v.date).toLocaleDateString('fr-FR')}</td><td style="padding: 5px; border-bottom: 1px solid #eee;"><b>${v.name}</b></td><td style="padding: 5px; border-bottom: 1px solid #eee;">${v.reason}</td><td style="text-align:right; padding: 5px; border-bottom: 1px solid #eee;"><b>${f>0?f.toFixed(3)+' DT':'-'}</b></td></tr>`;
                 });
                 document.getElementById('report-total-sum').textContent = total.toFixed(3);
                 
@@ -618,4 +617,77 @@
 
             formatDOBAndCalculateAge(input) {
                 let v = input.value.replace(/\D/g, ''); if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2); if (v.length > 5) v = v.slice(0, 5) + '/' + v.slice(5, 9); input.value = v;
-                if (v.length === 10) { const p = v.split('/'); const age = Math.abs(new Date(Date.now() - new Date(p[2], p[1]-1, p
+                if (v.length === 10) { const p = v.split('/'); const age = Math.abs(new Date(Date.now() - new Date(p[2], p[1]-1, p[0]).getTime()).getUTCFullYear() - 1970); document.getElementById('patient-age').value = age > 0 ? `${age} ans` : '< 1 an'; }
+            },
+            calculateApproximateDOB(input) { const v = input.value.replace(/\D/g, ''); if (v && !document.getElementById('patient-dob').value) document.getElementById('patient-dob').value = `01/01/${new Date().getFullYear() - parseInt(v, 10)}`; },
+
+            async saveVisit(e) {
+                e.preventDefault(); const isNew = !document.getElementById('visit-id').value;
+                const v = {
+                    id: isNew ? Date.now().toString() : document.getElementById('visit-id').value, date: isNew ? new Date().toISOString() : this.visits.find(x => x.id === document.getElementById('visit-id').value).date,
+                    name: document.getElementById('patient-name').value, origin: document.getElementById('patient-origin').value, dob: document.getElementById('patient-dob').value, age: document.getElementById('patient-age').value, phone: document.getElementById('patient-phone').value,
+                    reason: document.getElementById('visit-reason').value, history: document.getElementById('medical-history').value, allergies: document.getElementById('allergies').value,
+                    bp: document.getElementById('vital-bp').value, pulse: document.getElementById('vital-pulse').value, rr: document.getElementById('vital-rr').value, temp: document.getElementById('vital-temp').value, spo2: document.getElementById('vital-spo2').value,
+                    examGeneral: document.getElementById('exam-general').value, examHemo: document.getElementById('exam-hemo').value, examResp: document.getElementById('exam-resp').value, examNeuro: document.getElementById('exam-neuro').value, examAbdo: document.getElementById('exam-abdo').value, examOther: document.getElementById('exam-other').value,
+                    prescription: document.getElementById('prescription').value, fee: document.getElementById('visit-fee').value
+                };
+                if (isNew) this.visits.unshift(v); else this.visits[this.visits.findIndex(x => x.id === v.id)] = v;
+                await this.saveData(); this.showDashboard();
+            },
+
+            async deleteVisit(id) { if (confirm("Supprimer définitivement ce dossier médical ?")) { this.visits = this.visits.filter(v => v.id !== id); await this.saveData(); this.renderDashboard(); } },
+
+            async generatePDF(id, buttonElement) {
+                const v = this.visits.find(x => x.id === id); if (!v) return;
+                
+                document.getElementById('print-date-display').textContent = new Date(v.date).toLocaleDateString('fr-FR');
+                document.getElementById('print-signature-name').textContent = this.doctorName;
+                ['name','age','phone','reason','history','allergies','bp','pulse','temp','spo2','prescription'].forEach(k => { if(document.getElementById(`p-${k}`)) document.getElementById(`p-${k}`).textContent = v[k]||'-'; });
+                ['gen','hemo','resp','neuro','abdo','other'].forEach(k => { if(document.getElementById(`p-exam-${k}`)) document.getElementById(`p-exam-${k}`).textContent = v[`exam${k.charAt(0).toUpperCase()+k.slice(1)}`]? `${k.toUpperCase()}: ${v[`exam${k.charAt(0).toUpperCase()+k.slice(1)}`]} ` : ''; });
+                // LES HONORAIRES ONT ÉTÉ RETIRÉS DE LA GÉNÉRATION DE CE PDF
+                
+                const element = document.getElementById('print-view');
+                element.style.display = 'block';
+
+                const dateConsult = new Date(v.date).toLocaleDateString('fr-FR').replace(/\//g, '-');
+                const nomFichier = `Rapport_Medical_${v.name.replace(/\s+/g, '_')}_${dateConsult}.pdf`;
+
+                let btnText = "📄 PDF";
+                if (buttonElement) {
+                    btnText = buttonElement.innerText;
+                    buttonElement.innerText = "⏳...";
+                }
+
+                try {
+                    const opt = {
+                        margin: 10,
+                        filename: nomFichier,
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { scale: 2, useCORS: true },
+                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                    };
+                    
+                    const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
+                    await saveOrShareFile(nomFichier, pdfBlob, 'application/pdf');
+
+                } finally {
+                    element.style.display = 'none';
+                    if (buttonElement) buttonElement.innerText = btnText;
+                }
+            },
+
+            renderDashboard(fStr = '') {
+                const list = document.getElementById('visits-list'); list.innerHTML = '';
+                const filtered = this.visits.filter(v => `${v.name} ${v.reason}`.toLowerCase().includes(fStr));
+                if (filtered.length === 0) { list.innerHTML = `<p style="text-align:center; padding:2rem; color:#666;">Aucune consultation trouvée.</p>`; return; }
+                filtered.forEach(v => {
+                    const fee = parseFloat(v.fee) || 0;
+                    list.innerHTML += `<div class="visit-card"><div class="visit-card-header"><h3 style="font-size: 1.05rem;">${v.name}</h3><span style="font-size:0.8rem; color:#666;">${new Date(v.date).toLocaleDateString('fr-FR')}</span></div><div class="visit-card-body"><p><strong>Motif :</strong> ${v.reason}</p><p style="color:var(--primary-color); font-weight:bold;">💵 Honoraires : ${fee>0?fee.toFixed(3)+' DT':'-'}</p></div><div class="visit-card-actions"><button class="btn btn-outline" onclick="app.generatePDF('${v.id}', this)">📄 PDF</button><button class="btn btn-outline" onclick="app.showForm('${v.id}')">✏️ Éditer</button><button class="btn btn-danger" onclick="app.deleteVisit('${v.id}')">🗑️</button></div></div>`;
+                });
+            }
+        };
+
+        window.addEventListener('DOMContentLoaded', () => auth.init());
+    </script>
+</body>
+</html>
