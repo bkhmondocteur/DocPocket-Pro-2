@@ -7,6 +7,8 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="rgb(0, 51, 153)">
     
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
     <style>
         /* =========================================
            VARIABLES DE THÈME ET STYLE DE BASE
@@ -31,31 +33,6 @@
         .hidden { display: none !important; }
 
         /* =========================================
-           NOTIFICATION DE BIENVENUE (TOAST)
-           ========================================= */
-        #toast-notification {
-            position: fixed;
-            top: -100px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: var(--primary-color);
-            color: white;
-            padding: 1rem 2rem;
-            border-radius: 30px;
-            box-shadow: 0 4px 15px rgba(0, 51, 153, 0.4);
-            font-weight: bold;
-            font-size: 1.1rem;
-            z-index: 10000;
-            transition: top 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
-            text-align: center;
-            width: max-content;
-            max-width: 90%;
-        }
-        #toast-notification.show {
-            top: 20px;
-        }
-
-        /* =========================================
            ÉCRAN DE VERROUILLAGE & LICENCE
            ========================================= */
         #auth-view { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--primary-color); display: flex; justify-content: center; align-items: center; z-index: 9999; padding: 1rem; }
@@ -72,9 +49,9 @@
            STRUCTURE DE L'APPLICATION (RESPONSIVE)
            ========================================= */
         .app-header { background-color: var(--primary-color); color: white; padding: 0.8rem 1rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex-wrap: wrap; gap: 0.5rem; }
-        .logo-container { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 200px;}
+        .logo-container { display: flex; align-items: center; gap: 10px; }
         .header-logo { width: 32px; height: 32px; object-fit: contain; border-radius: 6px; background: white; padding: 2px; }
-        .app-header h1 { font-size: 1.1rem; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
+        .app-header h1 { font-size: 1.2rem; margin: 0;}
         .header-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
         #date-display { font-size: 0.85rem; }
         
@@ -135,38 +112,27 @@
             .form-group { margin-bottom: 1.2rem; }
             .form-actions { flex-direction: row; justify-content: flex-end; padding: 1rem 0; margin: 0; background: transparent; border:none; position: static;}
             .form-actions .btn { width: auto; }
-            .app-header h1 { font-size: 1.3rem; }
         }
 
-        /* =========================================
-           OPTIMISATION IMPRESSION PRO (PDF)
-           ========================================= */
-        #print-view, #print-report-view { display: none; }
-        
-        @media print {
-            @page { margin: 0; }
-            body { background: white; color: black; font-size: 11pt; padding: 15mm; overflow: visible; }
-            #app-ui, #auth-view, #toast-notification { display: none !important; }
-            
-            body.print-single #print-view { display: block !important; width: 100%; }
-            body.print-monthly #print-report-view { display: block !important; width: 100%; }
-            
-            .print-header { text-align: center; border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center;}
-            .print-logo { width: 60px; height: 60px; object-fit: contain; margin-bottom: 5px; }
-            .print-header h1 { font-size: 16pt; margin-bottom: 5px; }
-            
-            .print-section { display: block; width: 100%; margin-bottom: 15px; page-break-inside: avoid; }
-            .print-section h3 { color: black; border-bottom: 1px solid #ccc; padding-bottom: 2px; margin-bottom: 5px; font-size: 12pt; text-transform: uppercase; }
-            .print-row { display: flex; flex-wrap: wrap; margin-bottom: 5px; }
-            .print-col { flex: 1; min-width: 180px; }
-            .print-label { font-weight: bold; margin-right: 5px; }
-            .print-value { white-space: pre-wrap; }
+        /* Styles spécifiques pour le moteur de capture PDF */
+        #print-view, #print-report-view { 
+            display: none; 
+            background: white; 
+            color: black; 
+            padding: 20mm; 
+            font-size: 11pt;
+            width: 100%;
         }
+        .print-header { text-align: center; border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center;}
+        .print-logo { width: 60px; height: 60px; object-fit: contain; margin-bottom: 5px; }
+        .print-section { display: block; width: 100%; margin-bottom: 15px; }
+        .print-row { display: flex; flex-wrap: wrap; margin-bottom: 5px; }
+        .print-col { flex: 1; min-width: 180px; }
+        .print-label { font-weight: bold; margin-right: 5px; }
+        .print-value { white-space: pre-wrap; }
     </style>
 </head>
 <body>
-
-    <div id="toast-notification">👋 Bonjour Docteur</div>
 
     <div id="auth-view" class="hidden">
         <div class="auth-card">
@@ -324,7 +290,7 @@
 
     <div id="print-view">
         <div class="print-header">
-            <img class="print-logo" src="icon-512.png" alt="Logo" onerror="this.style.display='none'">
+            <img class="print-logo" src="icon-512.png" alt="Logo">
             <h1>Rapport de Consultation</h1><p><span id="print-date-display"></span></p>
         </div>
         <div class="print-section">
@@ -340,11 +306,11 @@
 
     <div id="print-report-view">
         <div class="print-header">
-            <img class="print-logo" src="icon-512.png" alt="Logo" onerror="this.style.display='none'">
+            <img class="print-logo" src="icon-512.png" alt="Logo">
             <h1>Journal des Honoraires</h1><p>Période : <span id="report-period-display"></span></p>
         </div>
         <table style="width:100%; border-collapse:collapse; margin-top:20px;">
-            <thead><tr style="border-bottom:2px solid black; text-align:left;"><th>Date</th><th>Patient</th><th>Motif</th><th style="text-align:right;">Montant</th></tr></thead>
+            <thead><tr style="border-bottom:2px solid black; text-align:left;"><th style="padding: 5px;">Date</th><th style="padding: 5px;">Patient</th><th style="padding: 5px;">Motif</th><th style="text-align:right; padding: 5px;">Montant</th></tr></thead>
             <tbody id="report-table-body"></tbody>
         </table>
         <div style="margin-top:20px; text-align:right; font-size:14pt; font-weight:bold;">Total : <span id="report-total-sum"></span> DT</div>
@@ -352,6 +318,17 @@
     </div>
 
     <script>
+        // --- FORMATEUR UNIQUE DE DATE ET HEURE POUR TITRES ---
+        function getFormattedTimestamp() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const day = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day}_${hours}h${minutes}`;
+        }
+
         const cryptoUtils = {
             async deriveKey(pin, salt) {
                 const pinBuffer = new TextEncoder().encode(pin);
@@ -437,7 +414,7 @@
             cancelChangePin() {
                 this.clearPin();
                 document.getElementById('btn-cancel-change').classList.add('hidden');
-                this.unlockApp();
+                this.unlockApp(); 
             },
 
             async submitPin() {
@@ -483,7 +460,7 @@
                 } else if (this.mode === 'change_pin_confirm') {
                     if (this.currentPinInput === this.tempNewPin) {
                         app.currentPin = this.tempNewPin;
-                        await app.saveData();
+                        await app.saveData(); 
                         alert("✅ Code PIN modifié avec succès !");
                         document.getElementById('btn-cancel-change').classList.add('hidden');
                         this.unlockApp();
@@ -513,12 +490,6 @@
                 document.getElementById('auth-view').classList.add('hidden');
                 document.getElementById('app-ui').classList.remove('hidden');
                 app.init(); 
-                
-                // NOUVEAU : Message de bienvenue "Toast"
-                const toast = document.getElementById('toast-notification');
-                toast.textContent = `👋 Bonjour ${app.doctorName}`;
-                toast.classList.add('show');
-                setTimeout(() => toast.classList.remove('show'), 3000);
             },
 
             lockApp() { 
@@ -534,8 +505,6 @@
 
             init() {
                 this.doctorName = localStorage.getItem('docpocket_doc_name') || 'Dr';
-                
-                // NOUVEAU : Le nom du médecin est accolé au titre
                 document.getElementById('app-title-display').textContent = `DocPocket Pro - ${this.doctorName}`;
                 
                 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
@@ -582,7 +551,7 @@
                 } catch(e) { alert("Erreur lors du chiffrement des données."); }
             },
 
-            generateMonthlyReport() {
+            async generateMonthlyReport() {
                 const [year, month] = document.getElementById('report-month').value.split('-');
                 if(!year) return;
                 const filtered = this.visits.filter(v => new Date(v.date).getFullYear() == year && new Date(v.date).getMonth() == month - 1).sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -598,13 +567,29 @@
                     tbody.innerHTML += `<tr><td style="padding: 5px;">${new Date(v.date).toLocaleDateString('fr-FR')}</td><td style="padding: 5px;"><b>${v.name}</b></td><td style="padding: 5px;">${v.reason}</td><td style="text-align:right; padding: 5px;"><b>${f>0?f.toFixed(3)+' DT':'-'}</b></td></tr>`;
                 });
                 document.getElementById('report-total-sum').textContent = total.toFixed(3);
-                document.body.className = 'print-monthly'; window.print(); document.body.className = '';
+                
+                // RENDU COMPTABLE PDF AUTOMATIQUE VIA HTML2PDF
+                const element = document.getElementById('print-report-view');
+                element.style.display = 'block';
+                const opt = {
+                    margin:       15,
+                    filename:     `Rapport_Mensuel_${month}_${year}_${getFormattedTimestamp()}.pdf`,
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2, useCORS: true },
+                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+                await html2pdf().set(opt).from(element).save();
+                element.style.display = 'none';
             },
 
             async exportBackup() {
                 const data = localStorage.getItem(this.STORAGE_KEY); if(!data) return alert("Base vide.");
                 const blob = new Blob([data], { type: "application/json" });
-                const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `DocPocket_Sauvegarde_${Date.now()}.json`;
+                const a = document.createElement('a'); 
+                
+                // SAUVEGARDE HORODATÉE AUTOMATIQUEMENT DANS LE TITRE
+                a.download = `DocPocket_Sauvegarde_${getFormattedTimestamp()}.json`;
+                a.href = URL.createObjectURL(blob);
                 document.body.appendChild(a); a.click(); document.body.removeChild(a);
             },
 
@@ -614,7 +599,7 @@
                 reader.onload = async (ev) => {
                     try {
                         const importedData = ev.target.result; 
-                        await cryptoUtils.decrypt(importedData, this.currentPin);
+                        await cryptoUtils.decrypt(importedData, this.currentPin); 
                         if (confirm("⚠️ Écraser les données actuelles avec cette sauvegarde ? Action définitive.")) { 
                             localStorage.setItem(this.STORAGE_KEY, importedData); 
                             alert("✅ Restauration réussie ! Redémarrage."); 
@@ -655,14 +640,26 @@
 
             async deleteVisit(id) { if (confirm("Supprimer définitivement ce dossier médical ?")) { this.visits = this.visits.filter(v => v.id !== id); await this.saveData(); this.renderDashboard(); } },
 
-            generatePDF(id) {
+            async generatePDF(id) {
                 const v = this.visits.find(x => x.id === id); if (!v) return;
                 document.getElementById('print-date-display').textContent = new Date(v.date).toLocaleDateString('fr-FR');
                 document.getElementById('print-signature-name').textContent = this.doctorName;
                 ['name','age','phone','reason','history','allergies','bp','pulse','temp','spo2','prescription'].forEach(k => { if(document.getElementById(`p-${k}`)) document.getElementById(`p-${k}`).textContent = v[k]||'-'; });
                 ['gen','hemo','resp','neuro','abdo','other'].forEach(k => { if(document.getElementById(`p-exam-${k}`)) document.getElementById(`p-exam-${k}`).textContent = v[`exam${k.charAt(0).toUpperCase()+k.slice(1)}`]? `${k.toUpperCase()}: ${v[`exam${k.charAt(0).toUpperCase()+k.slice(1)}`]} ` : ''; });
                 document.getElementById('p-fee').textContent = v.fee ? `${parseFloat(v.fee).toFixed(3)} DT` : 'Non facturé';
-                document.body.className = 'print-single'; window.print(); document.body.className = '';
+                
+                // EXPORTATION DE LA FICHE PATIENT EN PDF VIA HTML2PDF
+                const element = document.getElementById('print-view');
+                element.style.display = 'block';
+                const opt = {
+                    margin:       15,
+                    filename:     `Consultation_${v.name.replace(/\s+/g, '_')}_${getFormattedTimestamp()}.pdf`,
+                    image:        { type: 'jpeg', quality: 0.98 },
+                    html2canvas:  { scale: 2, useCORS: true },
+                    jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                };
+                await html2pdf().set(opt).from(element).save();
+                element.style.display = 'none';
             },
 
             renderDashboard(fStr = '') {
