@@ -127,7 +127,7 @@
 
     <div id="auth-view" class="hidden">
         <div class="auth-card">
-            <img class="auth-logo" src="icon-512.png?v=2" alt="Logo Cabinet" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23003399\'><path d=\'M19 10.5h-5.5V5h-3v5.5H5v3h5.5V19h3v-5.5H19v-3z\'/></svg>'">
+            <img class="auth-logo" src="icon-512.png?v=3" alt="Logo Cabinet" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23003399\'><path d=\'M19 10.5h-5.5V5h-3v5.5H5v3h5.5V19h3v-5.5H19v-3z\'/></svg>'">
             
             <div id="auth-license-section" class="hidden">
                 <h2>Activation DocPocket</h2>
@@ -164,7 +164,7 @@
     <div id="app-ui" class="hidden">
         <header class="app-header">
             <div class="logo-container">
-                <img class="header-logo" src="icon-512.png?v=2" alt="Logo" onerror="this.style.display='none'">
+                <img class="header-logo" src="icon-512.png?v=3" alt="Logo" onerror="this.style.display='none'">
                 <h1 id="app-title-display">DocPocket Pro</h1>
             </div>
             <div class="header-actions">
@@ -176,6 +176,13 @@
 
         <div class="container">
             <main id="dashboard-view">
+                
+                <div id="pwa-install-banner" class="hidden" style="background: #e3f2fd; padding: 1rem; border-radius: var(--radius); margin-bottom: 1.5rem; text-align: center; border: 1px solid #90caf9;">
+                    <p style="margin-bottom: 0.5rem; font-weight: bold; color: #1565c0;">📱 Profitez de l'expérience plein écran !</p>
+                    <p style="font-size: 0.85rem; margin-bottom: 1rem; color: #444;">Installez DocPocket sur votre appareil pour faire disparaître la barre d'adresse du navigateur.</p>
+                    <button class="btn" onclick="app.installPWA()">Installer l'application</button>
+                </div>
+
                 <div class="dashboard-controls">
                     <button class="btn" onclick="app.showForm()" style="font-size: 1.1rem; padding: 0.8rem;">➕ Nouvelle Consultation</button>
                     <input type="text" id="search-input" class="form-control search-bar" placeholder="Rechercher un patient...">
@@ -197,13 +204,14 @@
                 <div class="backup-panel">
                     <div>
                         <strong>⚙️ Paramètres & Sécurité</strong>
-                        <p>Sauvegarde, restauration et PIN.</p>
+                        <p>Sauvegarde, restauration, PIN et Empreinte.</p>
                     </div>
                     <div class="backup-actions">
                         <button class="btn btn-outline" onclick="app.exportBackup()">📥 Sauvegarder</button>
                         <input type="file" id="import-file" style="display:none" accept=".json" onchange="app.importBackup(event)">
                         <button class="btn btn-outline" onclick="document.getElementById('import-file').click()">📤 Restaurer</button>
                         <button class="btn btn-outline" style="border-color: #f57c00; color: #f57c00;" onclick="auth.startChangePin()">🔑 Changer PIN</button>
+                        <button id="btn-activate-bio" class="btn btn-outline hidden" style="border-color: #4CAF50; color: #4CAF50; flex-basis: 100%;" onclick="auth.registerBiometrics()">🛡️ Activer Empreinte</button>
                     </div>
                 </div>
             </main>
@@ -212,6 +220,7 @@
                 <button class="btn btn-outline" onclick="app.showDashboard()" style="margin-bottom: 1rem; width: 100%;">← Retour au tableau de bord</button>
                 <form id="consultation-form" onsubmit="app.saveVisit(event)">
                     <input type="hidden" id="visit-id">
+                    
                     <section class="form-section">
                         <h2>Démographie</h2>
                         <div class="grid-2">
@@ -273,7 +282,7 @@
 
     <div id="print-view">
         <div class="print-header">
-            <img class="print-logo" src="icon-512.png?v=2" alt="Logo" onerror="this.style.display='none'">
+            <img class="print-logo" src="icon-512.png?v=3" alt="Logo" onerror="this.style.display='none'">
             <h1>Rapport de Consultation</h1><p><span id="print-date-display"></span></p>
         </div>
         <div class="print-section">
@@ -288,11 +297,11 @@
 
     <div id="print-report-view">
         <div class="print-header">
-            <img class="print-logo" src="icon-512.png?v=2" alt="Logo" onerror="this.style.display='none'">
+            <img class="print-logo" src="icon-512.png?v=3" alt="Logo" onerror="this.style.display='none'">
             <h1>Journal des Honoraires</h1><p>Période : <span id="report-period-display"></span></p>
         </div>
         <table style="width:100%; border-collapse:collapse; margin-top:20px;">
-            <thead><tr style="border-bottom:2px solid black; text-align:left;"><th>Date</th><th>Patient</th><th>Motif</th><th style="text-align:right;">Montant</th></tr></thead>
+            <thead><tr style="border-bottom:2px solid black; text-align:left;"><th>Date</th><th>Patient</th><th style="text-align:right;">Montant</th></tr></thead>
             <tbody id="report-table-body"></tbody>
         </table>
         <div style="margin-top:20px; text-align:right; font-size:14pt; font-weight:bold;">Total : <span id="report-total-sum"></span> DT</div>
@@ -327,26 +336,14 @@
 
         async function saveOrShareFile(filename, blob, mimeType) {
             const file = new File([blob], filename, { type: mimeType });
-            
             if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                 try {
-                    await navigator.share({
-                        files: [file],
-                        title: filename
-                    });
-                    return; 
-                } catch (err) {
-                    console.log("Partage annulé ou échoué", err);
-                }
+                    await navigator.share({ files: [file], title: filename }); return; 
+                } catch (err) { console.log("Partage annulé", err); }
             }
-            
             const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.style.display = 'none';
-            a.href = url;
-            a.download = filename;
-            document.body.appendChild(a);
-            a.click();
+            const a = document.createElement('a'); a.style.display = 'none'; a.href = url; a.download = filename;
+            document.body.appendChild(a); a.click();
             setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 100);
         }
 
@@ -376,7 +373,7 @@
                     document.getElementById('auth-license-section').classList.add('hidden');
                     document.getElementById('pin-title').innerText = "Entrez votre Code PIN";
                     
-                    if (window.isSecureContext && navigator.credentials && window.PublicKeyCredential) {
+                    if (window.isSecureContext && window.PublicKeyCredential) {
                         document.getElementById('btn-biometric').classList.remove('hidden');
                     }
                 }
@@ -465,20 +462,71 @@
                 }
             },
 
-            async useBiometrics() {
+            // --- NOUVEAU : ENREGISTREMENT DE L'EMPREINTE (PASSKEY) ---
+            async registerBiometrics() {
                 try {
                     const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
-                    const credential = await navigator.credentials.get({ publicKey: { challenge: challenge, timeout: 60000, userVerification: "required" } });
+                    const userId = new Uint8Array(16); window.crypto.getRandomValues(userId);
+                    
+                    const credential = await navigator.credentials.create({
+                        publicKey: {
+                            challenge: challenge,
+                            rp: { name: "DocPocket Pro", id: window.location.hostname },
+                            user: { id: userId, name: "docteur", displayName: "Docteur" },
+                            pubKeyCredParams: [{type: "public-key", alg: -7}, {type: "public-key", alg: -257}],
+                            authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required" },
+                            timeout: 60000
+                        }
+                    });
+
+                    if (credential) {
+                        const credIdArray = new Uint8Array(credential.rawId);
+                        const credIdBase64 = btoa(String.fromCharCode.apply(null, credIdArray));
+                        localStorage.setItem('docpocket_passkey_id', credIdBase64);
+                        localStorage.setItem('docpocket_bio_token', btoa(app.currentPin)); // Lie le PIN actuel à l'empreinte
+                        alert("✅ Biométrie activée avec succès ! Vous pourrez utiliser votre empreinte à la prochaine connexion.");
+                    }
+                } catch (error) {
+                    console.error(error);
+                    alert("Erreur ou annulation. Votre appareil ne supporte peut-être pas les Passkeys locaux.");
+                }
+            },
+
+            // --- NOUVEAU : UTILISATION DE L'EMPREINTE ---
+            async useBiometrics() {
+                const savedCredId = localStorage.getItem('docpocket_passkey_id');
+                if (!savedCredId) {
+                    return alert("⚠️ Aucune empreinte configurée. Veuillez vous connecter avec votre code PIN, puis aller dans les Paramètres pour activer l'empreinte.");
+                }
+
+                try {
+                    const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
+                    const credIdArray = Uint8Array.from(atob(savedCredId), c => c.charCodeAt(0));
+
+                    const credential = await navigator.credentials.get({
+                        publicKey: {
+                            challenge: challenge,
+                            allowCredentials: [{ type: "public-key", id: credIdArray }],
+                            userVerification: "required",
+                            timeout: 60000
+                        }
+                    });
+
                     if (credential) {
                         const bioToken = localStorage.getItem('docpocket_bio_token');
-                        if (bioToken) { this.currentPinInput = atob(bioToken); await this.submitPin(); }
-                        else { alert("Connectez-vous d'abord une fois par code PIN pour activer l'empreinte."); }
+                        if (bioToken) {
+                            this.currentPinInput = atob(bioToken);
+                            await this.submitPin();
+                        } else {
+                            alert("Erreur de liaison. Veuillez utiliser le code PIN.");
+                        }
                     }
-                } catch (error) { console.log("Authentification biométrique annulée ou indisponible."); }
+                } catch (error) {
+                    console.log("Authentification biométrique annulée.", error);
+                }
             },
 
             unlockApp() {
-                localStorage.setItem('docpocket_bio_token', btoa(app.currentPin)); 
                 document.getElementById('auth-view').classList.add('hidden');
                 document.getElementById('app-ui').classList.remove('hidden');
                 app.init(); 
@@ -503,9 +551,20 @@
 
             init() {
                 this.doctorName = localStorage.getItem('docpocket_doc_name') || 'Dr';
-                document.getElementById('app-title-display').textContent = `DocPocket Pro - ${this.doctorName}`;
+                document.getElementById('app-title-display').textContent = `DocPocket Pro`;
                 
+                // Afficher le bouton d'activation biométrique seulement si supporté
+                if (window.isSecureContext && window.PublicKeyCredential) {
+                    document.getElementById('btn-activate-bio').classList.remove('hidden');
+                }
+
                 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+                
+                window.addEventListener('beforeinstallprompt', (e) => {
+                    e.preventDefault();
+                    this.deferredPrompt = e;
+                    document.getElementById('pwa-install-banner').classList.remove('hidden');
+                });
                 
                 const dateOptions = window.innerWidth < 768 ? { day: 'numeric', month: 'short' } : { weekday: 'long', day: 'numeric', month: 'long' };
                 document.getElementById('date-display').textContent = new Date().toLocaleDateString('fr-FR', dateOptions);
@@ -513,6 +572,17 @@
 
                 this.renderDashboard();
                 document.getElementById('search-input').addEventListener('input', (e) => this.renderDashboard(e.target.value.toLowerCase()));
+            },
+
+            async installPWA() {
+                if (this.deferredPrompt) {
+                    this.deferredPrompt.prompt();
+                    const { outcome } = await this.deferredPrompt.userChoice;
+                    if (outcome === 'accepted') {
+                        document.getElementById('pwa-install-banner').classList.add('hidden');
+                    }
+                    this.deferredPrompt = null;
+                }
             },
 
             async purgeCacheAndReload() {
@@ -545,7 +615,7 @@
                 let total = 0;
                 filtered.forEach(v => {
                     const f = parseFloat(v.fee) || 0; total += f;
-                    tbody.innerHTML += `<tr><td style="padding: 5px; border-bottom: 1px solid #eee;">${new Date(v.date).toLocaleDateString('fr-FR')}</td><td style="padding: 5px; border-bottom: 1px solid #eee;"><b>${v.name}</b></td><td style="padding: 5px; border-bottom: 1px solid #eee;">${v.reason}</td><td style="text-align:right; padding: 5px; border-bottom: 1px solid #eee;"><b>${f>0?f.toFixed(3)+' DT':'-'}</b></td></tr>`;
+                    tbody.innerHTML += `<tr><td style="padding: 5px; border-bottom: 1px solid #eee;">${new Date(v.date).toLocaleDateString('fr-FR')}</td><td style="padding: 5px; border-bottom: 1px solid #eee;"><b>${v.name}</b></td><td style="text-align:right; padding: 5px; border-bottom: 1px solid #eee;"><b>${f>0?f.toFixed(3)+' DT':'-'}</b></td></tr>`;
                 });
                 document.getElementById('report-total-sum').textContent = total.toFixed(3);
                 
@@ -644,7 +714,6 @@
                 document.getElementById('print-signature-name').textContent = this.doctorName;
                 ['name','age','phone','reason','history','allergies','bp','pulse','temp','spo2','prescription'].forEach(k => { if(document.getElementById(`p-${k}`)) document.getElementById(`p-${k}`).textContent = v[k]||'-'; });
                 ['gen','hemo','resp','neuro','abdo','other'].forEach(k => { if(document.getElementById(`p-exam-${k}`)) document.getElementById(`p-exam-${k}`).textContent = v[`exam${k.charAt(0).toUpperCase()+k.slice(1)}`]? `${k.toUpperCase()}: ${v[`exam${k.charAt(0).toUpperCase()+k.slice(1)}`]} ` : ''; });
-                // LES HONORAIRES ONT ÉTÉ RETIRÉS DE LA GÉNÉRATION DE CE PDF
                 
                 const element = document.getElementById('print-view');
                 element.style.display = 'block';
