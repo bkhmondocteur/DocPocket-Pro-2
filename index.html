@@ -7,6 +7,9 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="rgb(0, 51, 153)">
     <style>
+        /* =========================================
+           VARIABLES DE THÈME ET STYLE DE BASE
+           ========================================= */
         :root {
             --primary-color: rgb(0, 51, 153); 
             --primary-hover: rgb(0, 35, 110);
@@ -20,11 +23,15 @@
             --radius: 8px;
             --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
+
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
         body { background-color: var(--bg-color); color: var(--text-main); line-height: 1.5; overflow-x: hidden; }
         h1, h2, h3, h4 { color: var(--secondary-color); }
         .hidden { display: none !important; }
 
+        /* =========================================
+           ÉCRAN DE VERROUILLAGE & LICENCE
+           ========================================= */
         #auth-view { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--primary-color); display: flex; justify-content: center; align-items: center; z-index: 9999; padding: 1rem; }
         .auth-card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 100%; max-width: 400px; text-align: center; }
         .auth-logo { width: 70px; height: 70px; object-fit: contain; margin-bottom: 1rem; border-radius: var(--radius); }
@@ -32,6 +39,9 @@
         .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 1rem; max-width: 250px; margin-left: auto; margin-right: auto; }
         .key-btn { background: var(--bg-color); border: none; border-radius: 50%; width: 55px; height: 55px; font-size: 1.3rem; font-weight: bold; color: var(--secondary-color); cursor: pointer; margin: 0 auto; transition: background 0.1s; }
 
+        /* =========================================
+           STRUCTURE DE L'APPLICATION
+           ========================================= */
         .app-header { background-color: var(--primary-color); color: white; padding: 0.8rem 1rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex-wrap: wrap; gap: 0.5rem; }
         .logo-container { display: flex; align-items: center; gap: 10px; }
         .header-logo { width: 32px; height: 32px; object-fit: contain; border-radius: 6px; background: white; padding: 2px; }
@@ -92,7 +102,7 @@
 
     <div id="auth-view" class="hidden">
         <div class="auth-card">
-            <img id="logo-auth" class="auth-logo" alt="Logo">
+            <img class="auth-logo" src="icon-512.png" alt="Logo Cabinet">
             <div id="auth-pin-section">
                 <h2 id="pin-title">Test Mode</h2>
             </div>
@@ -102,7 +112,7 @@
     <div id="app-ui" class="hidden">
         <header class="app-header">
             <div class="logo-container">
-                <img id="logo-header" class="header-logo" alt="Logo">
+                <img class="header-logo" src="icon-512.png" alt="Logo">
                 <h1 id="app-title-display">DocPocket Pro</h1>
             </div>
             <div class="header-actions">
@@ -171,7 +181,10 @@
     </div>
 
     <div id="print-view">
-        <div class="print-header"><img id="logo-print" class="print-logo" alt="Logo"><h1>Rapport de Consultation</h1><p><span id="print-date-display"></span></p></div>
+        <div class="print-header">
+            <img class="print-logo" src="icon-512.png" alt="Logo">
+            <h1>Rapport de Consultation</h1><p><span id="print-date-display"></span></p>
+        </div>
         <div class="print-section">
             <div class="print-row"><div class="print-col"><span class="print-label">Nom:</span><span id="p-name"></span></div><div class="print-col"><span class="print-label">Âge:</span><span id="p-age"></span></div></div>
             <div class="print-row"><div class="print-col"><span class="print-label">Tél:</span><span id="p-phone"></span></div><div class="print-col"><span class="print-label">Motif:</span><span id="p-reason"></span></div></div>
@@ -184,7 +197,10 @@
     </div>
 
     <div id="print-report-view">
-        <div class="print-header"><img id="logo-report-print" class="print-logo" alt="Logo"><h1>Journal des Honoraires</h1><p>Période : <span id="report-period-display"></span></p></div>
+        <div class="print-header">
+            <img class="print-logo" src="icon-512.png" alt="Logo">
+            <h1>Journal des Honoraires</h1><p>Période : <span id="report-period-display"></span></p>
+        </div>
         <table style="width:100%; border-collapse:collapse; margin-top:20px;">
             <thead><tr style="border-bottom:2px solid black; text-align:left;"><th>Date</th><th>Patient</th><th>Motif</th><th style="text-align:right;">Montant</th></tr></thead>
             <tbody id="report-table-body"></tbody>
@@ -193,8 +209,6 @@
     </div>
 
     <script>
-        const CONFIG_LOGO_BASE64 = "VOTRE_CODE_BASE64_ICI";
-
         const cryptoUtils = {
             async deriveKey(pin, salt) {
                 const pinBuffer = new TextEncoder().encode(pin);
@@ -222,11 +236,6 @@
 
         const auth = {
             init() {
-                // Application du logo
-                const fallbackLogo = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23003399"><path d="M19 10.5h-5.5V5h-3v5.5H5v3h5.5V19h3v-5.5H19v-3z"/></svg>';
-                const finalLogoSrc = (CONFIG_LOGO_BASE64 && CONFIG_LOGO_BASE64 !== "VOTRE_CODE_BASE64_ICI") ? CONFIG_LOGO_BASE64 : fallbackLogo;
-                document.querySelectorAll('img[id^="logo-"]').forEach(img => img.src = finalLogoSrc);
-
                 // DÉSACTIVATION DE LA SÉCURITÉ POUR LA PHASE DE TEST
                 app.doctorName = localStorage.getItem('docpocket_doc_name') || "Dr Hamed BEN KHALIFA";
                 app.currentPin = "0000"; // Pin par défaut invisible
