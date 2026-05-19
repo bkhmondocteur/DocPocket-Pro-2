@@ -153,7 +153,7 @@
 
     <div id="auth-view" class="hidden">
         <div class="auth-card">
-            <img class="auth-logo" src="icon-512.png" alt="Logo Cabinet" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23003399\'><path d=\'M19 10.5h-5.5V5h-3v5.5H5v3h5.5V19h3v-5.5H19v-3z\'/></svg>'">
+            <img class="auth-logo" src="icon-512.png?v=2" alt="Logo Cabinet" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23003399\'><path d=\'M19 10.5h-5.5V5h-3v5.5H5v3h5.5V19h3v-5.5H19v-3z\'/></svg>'">
             
             <div id="auth-license-section" class="hidden">
                 <h2>Activation DocPocket</h2>
@@ -190,7 +190,7 @@
     <div id="app-ui" class="hidden">
         <header class="app-header">
             <div class="logo-container">
-                <img class="header-logo" src="icon-512.png" alt="Logo" onerror="this.style.display='none'">
+                <img class="header-logo" src="icon-512.png?v=2" alt="Logo" onerror="this.style.display='none'">
                 <h1 id="app-title-display">DocPocket Pro</h1>
             </div>
             <div class="header-actions">
@@ -306,7 +306,7 @@
 
     <div id="print-view">
         <div class="print-header">
-            <img class="print-logo" src="icon-512.png" alt="Logo" onerror="this.style.display='none'">
+            <img class="print-logo" src="icon-512.png?v=2" alt="Logo" onerror="this.style.display='none'">
             <h1>Rapport de Consultation</h1><p><span id="print-date-display"></span></p>
         </div>
         <div class="print-section">
@@ -322,7 +322,7 @@
 
     <div id="print-report-view">
         <div class="print-header">
-            <img class="print-logo" src="icon-512.png" alt="Logo" onerror="this.style.display='none'">
+            <img class="print-logo" src="icon-512.png?v=2" alt="Logo" onerror="this.style.display='none'">
             <h1>Journal des Honoraires</h1><p>Période : <span id="report-period-display"></span></p>
         </div>
         <table style="width:100%; border-collapse:collapse; margin-top:20px;">
@@ -385,8 +385,8 @@
                     document.getElementById('auth-license-section').classList.add('hidden');
                     document.getElementById('pin-title').innerText = "Entrez votre Code PIN";
                     
-                    // Affiche le bouton biométrique uniquement si environnement sécurisé (HTTPS)
-                    if (window.isSecureContext && navigator.credentials && window.PublicKeyCredential) {
+                    // AFFICHAGE FORCÉ DU BOUTON BIOMÉTRIQUE SI SUPPORTÉ
+                    if (window.PublicKeyCredential) {
                         document.getElementById('btn-biometric').classList.remove('hidden');
                     }
                 }
@@ -560,7 +560,7 @@
                 } catch(e) { alert("Erreur lors du chiffrement des données."); }
             },
 
-            // EXPORTATION DU RAPPORT MENSUEL EN PDF (Silencieuse)
+            // EXPORTATION DU RAPPORT MENSUEL EN PDF
             async generateMonthlyReport(event) {
                 const [year, month] = document.getElementById('report-month').value.split('-');
                 if(!year) return;
@@ -588,40 +588,39 @@
                 }
 
                 try {
-                    await html2pdf().set({
+                    const opt = {
                         margin: 10,
                         filename: `Journal_Honoraires_${month}-${year}.pdf`,
                         image: { type: 'jpeg', quality: 0.98 },
                         html2canvas: { scale: 2, useCORS: true },
                         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                    }).from(element).save();
+                    };
+                    await html2pdf().set(opt).from(element).save();
                 } finally {
                     element.style.display = 'none';
                     if (event && event.target) event.target.innerText = btnText;
                 }
             },
 
-            // EXPORTATION DE LA SAUVEGARDE JSON (Forcée et silencieuse)
+            // EXPORTATION DE LA SAUVEGARDE JSON (Forcée sans "Save As" si possible)
             async exportBackup() {
                 const data = localStorage.getItem(this.STORAGE_KEY); 
                 if(!data) return alert("Base vide.");
                 
                 const now = new Date();
-                const dateStr = now.toLocaleDateString('fr-FR').replace(/\//g, '-');
-                const timeStr = now.toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit', second:'2-digit'}).replace(/:/g, '-');
-                const fileName = `DocPocket_Sauvegarde_${dateStr}_${timeStr}.json`;
+                const timestamp = now.toISOString().replace(/T/, '_').replace(/\..+/, '').replace(/:/g, '-');
+                const fileName = `DocPocket_Sauvegarde_${timestamp}.json`;
 
                 const blob = new Blob([data], { type: "application/json" });
                 const url = URL.createObjectURL(blob);
                 
                 const a = document.createElement('a'); 
-                a.style.display = 'none'; // Dissimule le lien pour éviter les pop-ups
+                a.style.display = 'none'; 
                 a.href = url; 
                 a.download = fileName;
                 document.body.appendChild(a); 
                 a.click();
                 
-                // Nettoyage de la mémoire immédiatement après
                 setTimeout(() => {
                     document.body.removeChild(a);
                     window.URL.revokeObjectURL(url);
@@ -675,7 +674,7 @@
 
             async deleteVisit(id) { if (confirm("Supprimer définitivement ce dossier médical ?")) { this.visits = this.visits.filter(v => v.id !== id); await this.saveData(); this.renderDashboard(); } },
 
-            // EXPORTATION DU RAPPORT MEDICAL DU PATIENT EN PDF (Silencieuse)
+            // EXPORTATION DU RAPPORT MEDICAL EN PDF
             async generatePDF(id, buttonElement) {
                 const v = this.visits.find(x => x.id === id); if (!v) return;
                 
@@ -698,13 +697,14 @@
                 }
 
                 try {
-                    await html2pdf().set({
+                    const opt = {
                         margin: 10,
                         filename: nomFichier,
                         image: { type: 'jpeg', quality: 0.98 },
                         html2canvas: { scale: 2, useCORS: true },
                         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                    }).from(element).save();
+                    };
+                    await html2pdf().set(opt).from(element).save();
                 } finally {
                     element.style.display = 'none';
                     if (buttonElement) buttonElement.innerText = btnText;
