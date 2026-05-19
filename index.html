@@ -10,9 +10,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <style>
-        /* =========================================
-           VARIABLES DE THÈME ET STYLE DE BASE
-           ========================================= */
         :root {
             --primary-color: rgb(0, 51, 153); 
             --primary-hover: rgb(0, 35, 110);
@@ -32,29 +29,18 @@
         h1, h2, h3, h4 { color: var(--secondary-color); }
         .hidden { display: none !important; }
 
-        /* NOTIFICATION DE BIENVENUE */
+        /* NOTIFICATION */
         #toast-notification {
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background-color: var(--primary-color);
-            color: white;
-            padding: 1rem 2rem;
-            border-radius: 30px;
-            box-shadow: 0 4px 15px rgba(0, 51, 153, 0.4);
-            font-weight: bold;
-            font-size: 1.1rem;
-            z-index: 10000;
-            text-align: center;
-            width: max-content;
-            max-width: 90%;
-            opacity: 1;
-            transition: opacity 0.5s ease-in-out;
+            position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+            background-color: var(--primary-color); color: white;
+            padding: 1rem 2rem; border-radius: 30px; box-shadow: 0 4px 15px rgba(0, 51, 153, 0.4);
+            font-weight: bold; font-size: 1.1rem; z-index: 10000;
+            text-align: center; width: max-content; max-width: 90%;
+            opacity: 1; transition: opacity 0.5s ease-in-out;
         }
         #toast-notification.fade-out { opacity: 0; pointer-events: none; }
 
-        /* ÉCRAN DE VERROUILLAGE & LICENCE */
+        /* AUTH UI */
         #auth-view { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--primary-color); display: flex; justify-content: center; align-items: center; z-index: 9999; padding: 1rem; }
         .auth-card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 100%; max-width: 400px; text-align: center; }
         .auth-logo { width: 70px; height: 70px; object-fit: contain; margin-bottom: 1rem; border-radius: var(--radius); }
@@ -65,7 +51,7 @@
         .key-btn:active { background: #d0d0d0; }
         .bio-btn { background: transparent; border: 2px solid var(--primary-color); color: var(--primary-color); padding: 0.7rem; border-radius: var(--radius); width: 100%; font-size: 0.95rem; font-weight: bold; cursor: pointer; margin-top: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px; }
 
-        /* STRUCTURE DE L'APPLICATION */
+        /* APP UI */
         .app-header { background-color: var(--primary-color); color: white; padding: 0.8rem 1rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex-wrap: wrap; gap: 0.5rem; }
         .logo-container { display: flex; align-items: center; gap: 10px; }
         .header-logo { width: 32px; height: 32px; object-fit: contain; border-radius: 6px; background: white; padding: 2px; }
@@ -80,13 +66,11 @@
         .btn-outline { background-color: transparent; color: var(--primary-color); border: 1px solid var(--primary-color); }
         .btn-outline:hover { background-color: var(--primary-color); color: white; }
         .btn-danger { background-color: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); }
-        .btn-danger:hover { background-color: var(--danger-color); color: white; }
         .btn-refresh { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 0.3rem 0.6rem; font-size: 0.8rem; border-radius: 4px; }
         
         .form-group { margin-bottom: 0.8rem; display: flex; flex-direction: column; width: 100%; }
         .form-group label { font-weight: 600; margin-bottom: 0.2rem; color: var(--secondary-color); font-size: 0.85rem; }
         .form-control { padding: 0.6rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.95rem; background-color: #fafafa; transition: border-color 0.2s; width: 100%; }
-        .form-control:focus { outline: none; border-color: var(--primary-color); background-color: white; box-shadow: 0 0 0 2px rgba(0, 90, 111, 0.1); }
         textarea.form-control { resize: vertical; min-height: 60px; }
 
         .dashboard-controls { display: flex; flex-direction: column; gap: 0.8rem; margin-bottom: 1.5rem; }
@@ -105,7 +89,6 @@
         .form-section h2 { border-bottom: 2px solid var(--bg-color); padding-bottom: 0.4rem; margin-bottom: 1rem; font-size: 1.1rem; }
         .grid-2, .grid-3 { display: grid; grid-template-columns: 1fr; gap: 0.5rem; }
         .form-actions { display: flex; flex-direction: column; gap: 0.5rem; position: sticky; bottom: 0; background: var(--bg-color); padding: 0.8rem 0.5rem; border-top: 1px solid var(--border-color); z-index: 10; margin-left: -0.5rem; margin-right: -0.5rem; }
-        .form-actions .btn { width: 100%; }
 
         @media (min-width: 768px) {
             .container { padding: 0 1rem; margin: 2rem auto; }
@@ -117,10 +100,9 @@
             .backup-panel { flex-direction: row; justify-content: space-between; align-items: center; padding: 1.5rem; }
             .backup-actions { width: auto; flex-wrap: nowrap; }
             .form-section { padding: 2rem; margin-bottom: 2rem; }
-            .form-section h2 { font-size: 1.3rem; margin-bottom: 1.5rem; }
             .grid-2 { grid-template-columns: 1fr 1fr; gap: 1rem; }
             .grid-3 { grid-template-columns: repeat(3, 1fr); gap: 1rem; }
-            .form-actions { flex-direction: row; justify-content: flex-end; padding: 1rem 0; margin: 0; background: transparent; border:none; position: static;}
+            .form-actions { flex-direction: row; justify-content: flex-end; position: static; background: transparent; border: none;}
             .form-actions .btn { width: auto; }
         }
 
@@ -137,14 +119,6 @@
         .print-col { flex: 1; min-width: 180px; }
         .print-label { font-weight: bold; margin-right: 5px; }
         .print-value { white-space: pre-wrap; }
-        
-        @media print {
-            @page { margin: 0; }
-            body { background: white; }
-            #app-ui, #auth-view, #toast-notification { display: none !important; }
-            body.print-single #print-view { display: block !important; }
-            body.print-monthly #print-report-view { display: block !important; }
-        }
     </style>
 </head>
 <body>
@@ -202,12 +176,6 @@
 
         <div class="container">
             <main id="dashboard-view">
-                <div id="pwa-install-banner" class="hidden" style="background: #e3f2fd; padding: 1rem; border-radius: var(--radius); margin-bottom: 1.5rem; text-align: center; border: 1px solid #90caf9;">
-                    <p style="margin-bottom: 0.5rem; font-weight: bold; color: #1565c0;">📱 Profitez de l'expérience plein écran !</p>
-                    <p style="font-size: 0.85rem; margin-bottom: 1rem; color: #444;">Installez DocPocket sur votre appareil pour faire disparaître la barre d'adresse du navigateur.</p>
-                    <button class="btn" onclick="app.installPWA()">Installer l'application</button>
-                </div>
-
                 <div class="dashboard-controls">
                     <button class="btn" onclick="app.showForm()" style="font-size: 1.1rem; padding: 0.8rem;">➕ Nouvelle Consultation</button>
                     <input type="text" id="search-input" class="form-control search-bar" placeholder="Rechercher un patient...">
@@ -244,7 +212,6 @@
                 <button class="btn btn-outline" onclick="app.showDashboard()" style="margin-bottom: 1rem; width: 100%;">← Retour au tableau de bord</button>
                 <form id="consultation-form" onsubmit="app.saveVisit(event)">
                     <input type="hidden" id="visit-id">
-                    
                     <section class="form-section">
                         <h2>Démographie</h2>
                         <div class="grid-2">
@@ -334,6 +301,7 @@
     </div>
 
     <script>
+        // LOGIQUE DE CHIFFREMENT
         const cryptoUtils = {
             async deriveKey(pin, salt) {
                 const pinBuffer = new TextEncoder().encode(pin);
@@ -358,6 +326,34 @@
                 return new TextDecoder().decode(decryptedBuffer);
             }
         };
+
+        // --- NOUVEAU : FONCTION DE PARTAGE/TÉLÉCHARGEMENT DIRECT ---
+        async function saveOrShareFile(filename, blob, mimeType) {
+            const file = new File([blob], filename, { type: mimeType });
+            
+            // Si le téléphone supporte le partage direct (Bypass du Wrapper APK)
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                try {
+                    await navigator.share({
+                        files: [file],
+                        title: filename
+                    });
+                    return; // Partage réussi, pas besoin de télécharger
+                } catch (err) {
+                    console.log("Partage annulé ou échoué", err);
+                }
+            }
+            
+            // Fallback: Téléchargement classique (si le partage est annulé ou indisponible)
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.style.display = 'none';
+            a.href = url;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 100);
+        }
 
         const auth = {
             currentPinInput: "", mode: "login", tempNewPin: "",
@@ -385,8 +381,8 @@
                     document.getElementById('auth-license-section').classList.add('hidden');
                     document.getElementById('pin-title').innerText = "Entrez votre Code PIN";
                     
-                    // AFFICHAGE FORCÉ DU BOUTON BIOMÉTRIQUE SI SUPPORTÉ
-                    if (window.PublicKeyCredential) {
+                    // Affiche le bouton biométrique uniquement si environnement sécurisé (HTTPS)
+                    if (window.isSecureContext && navigator.credentials && window.PublicKeyCredential) {
                         document.getElementById('btn-biometric').classList.remove('hidden');
                     }
                 }
@@ -510,7 +506,7 @@
         };
 
         const app = {
-            visits: [], STORAGE_KEY: 'docpocket_visits_data', doctorName: '', currentPin: '', deferredPrompt: null,
+            visits: [], STORAGE_KEY: 'docpocket_visits_data', doctorName: '', currentPin: '',
 
             init() {
                 this.doctorName = localStorage.getItem('docpocket_doc_name') || 'Dr';
@@ -518,29 +514,12 @@
                 
                 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
                 
-                window.addEventListener('beforeinstallprompt', (e) => {
-                    e.preventDefault();
-                    this.deferredPrompt = e;
-                    document.getElementById('pwa-install-banner').classList.remove('hidden');
-                });
-                
                 const dateOptions = window.innerWidth < 768 ? { day: 'numeric', month: 'short' } : { weekday: 'long', day: 'numeric', month: 'long' };
                 document.getElementById('date-display').textContent = new Date().toLocaleDateString('fr-FR', dateOptions);
                 const now = new Date(); document.getElementById('report-month').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
                 this.renderDashboard();
                 document.getElementById('search-input').addEventListener('input', (e) => this.renderDashboard(e.target.value.toLowerCase()));
-            },
-
-            async installPWA() {
-                if (this.deferredPrompt) {
-                    this.deferredPrompt.prompt();
-                    const { outcome } = await this.deferredPrompt.userChoice;
-                    if (outcome === 'accepted') {
-                        document.getElementById('pwa-install-banner').classList.add('hidden');
-                    }
-                    this.deferredPrompt = null;
-                }
             },
 
             async purgeCacheAndReload() {
@@ -560,7 +539,7 @@
                 } catch(e) { alert("Erreur lors du chiffrement des données."); }
             },
 
-            // EXPORTATION DU RAPPORT MENSUEL EN PDF
+            // --- EXPORTATION DU RAPPORT MENSUEL (Via Share API) ---
             async generateMonthlyReport(event) {
                 const [year, month] = document.getElementById('report-month').value.split('-');
                 if(!year) return;
@@ -588,43 +567,37 @@
                 }
 
                 try {
+                    const fileName = `Journal_Honoraires_${month}-${year}.pdf`;
                     const opt = {
                         margin: 10,
-                        filename: `Journal_Honoraires_${month}-${year}.pdf`,
+                        filename: fileName,
                         image: { type: 'jpeg', quality: 0.98 },
                         html2canvas: { scale: 2, useCORS: true },
                         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                     };
-                    await html2pdf().set(opt).from(element).save();
+                    
+                    // Génère le Blob au lieu de sauvegarder directement
+                    const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
+                    await saveOrShareFile(fileName, pdfBlob, 'application/pdf');
+
                 } finally {
                     element.style.display = 'none';
                     if (event && event.target) event.target.innerText = btnText;
                 }
             },
 
-            // EXPORTATION DE LA SAUVEGARDE JSON (Forcée sans "Save As" si possible)
+            // --- EXPORTATION DE LA SAUVEGARDE JSON (Via Share API) ---
             async exportBackup() {
                 const data = localStorage.getItem(this.STORAGE_KEY); 
                 if(!data) return alert("Base vide.");
                 
                 const now = new Date();
-                const timestamp = now.toISOString().replace(/T/, '_').replace(/\..+/, '').replace(/:/g, '-');
-                const fileName = `DocPocket_Sauvegarde_${timestamp}.json`;
+                const dateStr = now.toLocaleDateString('fr-FR').replace(/\//g, '-');
+                const timeStr = now.toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit', second:'2-digit'}).replace(/:/g, '-');
+                const fileName = `DocPocket_Sauvegarde_${dateStr}_${timeStr}.json`;
 
                 const blob = new Blob([data], { type: "application/json" });
-                const url = URL.createObjectURL(blob);
-                
-                const a = document.createElement('a'); 
-                a.style.display = 'none'; 
-                a.href = url; 
-                a.download = fileName;
-                document.body.appendChild(a); 
-                a.click();
-                
-                setTimeout(() => {
-                    document.body.removeChild(a);
-                    window.URL.revokeObjectURL(url);
-                }, 100);
+                await saveOrShareFile(fileName, blob, 'application/json');
             },
 
             importBackup(e) {
@@ -674,7 +647,7 @@
 
             async deleteVisit(id) { if (confirm("Supprimer définitivement ce dossier médical ?")) { this.visits = this.visits.filter(v => v.id !== id); await this.saveData(); this.renderDashboard(); } },
 
-            // EXPORTATION DU RAPPORT MEDICAL EN PDF
+            // --- EXPORTATION DU RAPPORT MEDICAL EN PDF (Via Share API) ---
             async generatePDF(id, buttonElement) {
                 const v = this.visits.find(x => x.id === id); if (!v) return;
                 
@@ -704,7 +677,12 @@
                         html2canvas: { scale: 2, useCORS: true },
                         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
                     };
-                    await html2pdf().set(opt).from(element).save();
+                    
+                    // Génère le Blob
+                    const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
+                    // Lance le partage
+                    await saveOrShareFile(nomFichier, pdfBlob, 'application/pdf');
+
                 } finally {
                     element.style.display = 'none';
                     if (buttonElement) buttonElement.innerText = btnText;
