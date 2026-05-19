@@ -6,92 +6,205 @@
     <title>DocPocket Pro</title>
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="rgb(0, 51, 153)">
-    
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     
     <style>
-        :root {
-            --primary-color: rgb(0, 51, 153); --primary-hover: rgb(0, 35, 110);
-            --secondary-color: #001133; --bg-color: #F4F7F6;
-            --card-bg: #FFFFFF; --text-main: #333333;
-            --border-color: #E0E0E0; --danger-color: #D32F2F;
-            --radius: 8px; --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; }
-        body { background-color: var(--bg-color); color: var(--text-main); line-height: 1.5; overflow-x: hidden; }
+        :root { --primary-color: rgb(0, 51, 153); --primary-hover: rgb(0, 35, 110); --bg-color: #F4F7F6; --radius: 8px; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        body { background-color: var(--bg-color); line-height: 1.5; overflow-x: hidden; }
         .hidden { display: none !important; }
+
+        /* Auth & Pin */
+        #auth-view { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--primary-color); display: flex; justify-content: center; align-items: center; z-index: 9999; padding: 1rem; }
+        .auth-card { background: white; padding: 2rem; border-radius: 12px; width: 100%; max-width: 400px; text-align: center; }
+        .auth-logo { width: 70px; height: 70px; margin-bottom: 1rem; }
+        .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; max-width: 250px; margin: 1rem auto; }
+        .key-btn { padding: 15px; border-radius: 50%; border: none; background: #e0e0e0; font-weight: bold; cursor: pointer; }
         
-        /* Styles épurés pour le PDF */
-        .pdf-container { display: none; width: 100%; padding: 20px; background: white; color: black; }
+        /* App Layout */
+        .app-header { background-color: var(--primary-color); color: white; padding: 0.8rem; display: flex; justify-content: space-between; align-items: center; }
+        .container { padding: 1rem; max-width: 800px; margin: auto; }
+        .btn { background-color: var(--primary-color); color: white; border: none; padding: 0.8rem; border-radius: var(--radius); width: 100%; margin-bottom: 0.5rem; }
+        .btn-outline { background: transparent; border: 1px solid var(--primary-color); color: var(--primary-color); }
+        .btn-danger { background: transparent; border: 1px solid #d32f2f; color: #d32f2f; }
+        .form-control { width: 100%; padding: 0.7rem; margin-bottom: 1rem; border: 1px solid #ccc; border-radius: var(--radius); }
+        .visit-card { background: white; padding: 1rem; margin-bottom: 1rem; border-radius: var(--radius); border-left: 4px solid var(--primary-color); }
+        .backup-panel { background: #eef5f6; padding: 1rem; border-radius: var(--radius); margin-bottom: 1rem; }
         
-        /* ... (Gardez ici tous vos styles CSS précédents pour l'interface app-ui) ... */
-        /* Note : Pour gagner en lisibilité, le bloc CSS ci-dessous contient les essentiels. 
-           Copiez l'intégralité du style de la version précédente pour garantir le design. */
-        .app-header { background-color: var(--primary-color); color: white; padding: 0.8rem 1rem; display: flex; justify-content: space-between; align-items: center; }
-        .btn { background-color: var(--primary-color); color: white; border: none; padding: 0.6rem 1rem; border-radius: var(--radius); cursor: pointer; }
-        .form-section { background: white; padding: 1rem; margin-bottom: 1rem; border-radius: var(--radius); }
-        .form-control { width: 100%; padding: 0.6rem; border: 1px solid #ddd; border-radius: 4px; }
+        /* PDF Containers */
+        .pdf-container { display: none; padding: 20px; }
     </style>
 </head>
 <body>
 
-    <div id="print-view" class="pdf-container">
+    <div id="auth-view">
+        <div class="auth-card">
+            <img class="auth-logo" src="icon-512.png" alt="Logo">
+            <div id="auth-license-section" class="hidden">
+                <input type="text" id="license-key" class="form-control" placeholder="DOCPRO-xxxxxx-2026">
+                <button class="btn" onclick="auth.checkLicense()">Activer</button>
+            </div>
+            <div id="auth-pin-section" class="hidden">
+                <h2 id="pin-title">Code PIN</h2>
+                <div id="pin-dots" style="font-size: 2rem; margin: 10px 0;"></div>
+                <div class="keypad" id="numpad">
+                    <button class="key-btn" onclick="auth.pressPin(1)">1</button><button class="key-btn" onclick="auth.pressPin(2)">2</button><button class="key-btn" onclick="auth.pressPin(3)">3</button>
+                    <button class="key-btn" onclick="auth.pressPin(4)">4</button><button class="key-btn" onclick="auth.pressPin(5)">5</button><button class="key-btn" onclick="auth.pressPin(6)">6</button>
+                    <button class="key-btn" onclick="auth.pressPin(7)">7</button><button class="key-btn" onclick="auth.pressPin(8)">8</button><button class="key-btn" onclick="auth.pressPin(9)">9</button>
+                    <button class="key-btn" onclick="auth.clearPin()">C</button><button class="key-btn" onclick="auth.pressPin(0)">0</button><button class="key-btn" onclick="auth.submitPin()">OK</button>
+                </div>
+                <button id="btn-cancel-change" class="btn btn-danger hidden" onclick="auth.cancelChangePin()">Annuler</button>
+            </div>
         </div>
+    </div>
 
-    <div id="print-report-view" class="pdf-container">
+    <div id="app-ui" class="hidden">
+        <header class="app-header">
+            <h1 id="app-title-display" style="font-size: 1rem;">DocPocket Pro</h1>
+            <button class="btn" style="width: auto;" onclick="auth.lockApp()">🔒</button>
+        </header>
+        <div class="container">
+            <button class="btn" onclick="app.showForm()">➕ Nouvelle Consultation</button>
+            <div id="visits-list"></div>
+            <div class="backup-panel">
+                <input type="month" id="report-month" class="form-control">
+                <button class="btn" onclick="app.generateMonthlyReport()">📊 Rapport Mensuel PDF</button>
+                <button class="btn btn-outline" onclick="app.exportBackup()">📥 Exporter Données</button>
+                <button class="btn btn-outline" onclick="document.getElementById('import-file').click()">📤 Restaurer</button>
+                <input type="file" id="import-file" style="display:none" onchange="app.importBackup(event)">
+                <button class="btn btn-outline" style="border-color:orange; color:orange;" onclick="auth.startChangePin()">🔑 Changer PIN</button>
+            </div>
         </div>
+    </div>
+
+    <div id="print-view" class="pdf-container">
+        <h1>Rapport de Consultation</h1>
+        <p id="p-date"></p>
+        <p id="p-name"></p>
+        <p id="p-reason"></p>
+        <p id="p-fee"></p>
+    </div>
+    <div id="print-report-view" class="pdf-container">
+        <h1>Journal des Honoraires</h1>
+        <table id="report-table"></table>
+        <p id="report-total"></p>
+    </div>
 
     <script>
-        // --- UTILITAIRE DE DATE POUR FICHIERS ---
-        function getFileTimestamp() {
-            return new Date().toISOString().replace(/[:.]/g, '-').slice(0, 16);
-        }
-
-        // --- GÉNÉRATEUR DE PDF UNIFIÉ ---
-        async function exportToPDF(elementId, baseName) {
-            const element = document.getElementById(elementId);
-            const filename = `${baseName}_${getFileTimestamp()}.pdf`;
-            
-            const opt = {
-                margin:       10,
-                filename:     filename,
-                image:        { type: 'jpeg', quality: 0.98 },
-                html2canvas:  { scale: 2, useCORS: true },
-                jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' }
-            };
-
-            element.style.display = 'block'; // Rendre visible pour capture
-            await html2pdf().set(opt).from(element).save();
-            element.style.display = 'none'; // Recacher après
-        }
-
-        // --- LOGIQUE APP (MODIFIÉE) ---
-        const app = {
-            // ... (Gardez tout votre code précédent, remplacez juste ces 3 fonctions) ...
-
-            async exportBackup() {
-                const data = localStorage.getItem(this.STORAGE_KEY); if(!data) return alert("Base vide.");
-                const blob = new Blob([data], { type: "application/json" });
-                const a = document.createElement('a'); 
-                // NOUVEAU NOM AUTO
-                a.download = `DocPocket_Sauvegarde_${getFileTimestamp()}.json`;
-                a.href = URL.createObjectURL(blob);
-                document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        // Crypto Logic
+        const cryptoUtils = {
+            async deriveKey(pin, salt) {
+                const b = new TextEncoder().encode(pin);
+                const k = await crypto.subtle.importKey("raw", b, { name: "PBKDF2" }, false, ["deriveKey"]);
+                return crypto.subtle.deriveKey({ name: "PBKDF2", salt: salt, iterations: 100000, hash: "SHA-256" }, k, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
             },
-
-            generatePDF(id) {
-                const v = this.visits.find(x => x.id === id); if (!v) return;
-                // (Remplissage de votre div print-view ici...)
-                exportToPDF('print-view', `Consultation_${v.name.replace(/\s+/g, '_')}`);
+            async encrypt(t, p) {
+                const b = new TextEncoder().encode(t); const s = crypto.getRandomValues(new Uint8Array(16)); const iv = crypto.getRandomValues(new Uint8Array(12));
+                const key = await this.deriveKey(p, s);
+                const ct = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, b);
+                const c = new Uint8Array(s.length + iv.length + ct.byteLength);
+                c.set(s, 0); c.set(iv, s.length); c.set(new Uint8Array(ct), s.length + iv.length);
+                return btoa(String.fromCharCode(...c));
             },
-
-            generateMonthlyReport() {
-                // (Remplissage de votre div print-report-view ici...)
-                exportToPDF('print-report-view', 'Rapport_Mensuel');
-            },
-
-            // ... (Le reste du code identique) ...
+            async decrypt(cb, p) {
+                const bin = Uint8Array.from(atob(cb), c => c.charCodeAt(0));
+                const s = bin.slice(0, 16); const iv = bin.slice(16, 28); const ct = bin.slice(28);
+                const key = await this.deriveKey(p, s);
+                return new TextDecoder().decode(await crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, key, ct));
+            }
         };
+
+        function getFileTimestamp() { return new Date().toISOString().replace(/[:.]/g, '-').slice(0, 16); }
+
+        async function exportToPDF(elementId, baseName) {
+            const el = document.getElementById(elementId);
+            el.style.display = 'block';
+            await html2pdf().set({ margin: 10, filename: `${baseName}_${getFileTimestamp()}.pdf`, html2canvas: { scale: 2 }, jsPDF: { format: 'a4' } }).from(el).save();
+            el.style.display = 'none';
+        }
+
+        const auth = {
+            currentPin: "", mode: "login", newPin: "",
+            init() {
+                const docName = localStorage.getItem('docpocket_doc_name');
+                if(!docName) { this.mode='license'; document.getElementById('auth-license-section').classList.remove('hidden'); }
+                else if(!localStorage.getItem('docpocket_pin_configured')) { this.mode='setup'; document.getElementById('auth-pin-section').classList.remove('hidden'); }
+                else { this.mode='login'; document.getElementById('auth-pin-section').classList.remove('hidden'); }
+                document.getElementById('auth-view').classList.remove('hidden');
+            },
+            checkLicense() {
+                const k = document.getElementById('license-key').value;
+                if(k.startsWith('DOCPRO-')) { localStorage.setItem('docpocket_doc_name', atob(k.split('-')[1])); this.init(); }
+            },
+            pressPin(n) { if(this.currentPin.length < 4) { this.currentPin += n; document.getElementById('pin-dots').innerText = "*".repeat(this.currentPin.length); } },
+            clearPin() { this.currentPin = ""; document.getElementById('pin-dots').innerText = ""; },
+            async submitPin() {
+                if(this.mode === 'setup') {
+                    localStorage.setItem('docpocket_pin_configured', 'true');
+                    app.pin = this.currentPin;
+                    await app.saveData();
+                    this.unlock();
+                } else if(this.mode === 'login') {
+                    try { await cryptoUtils.decrypt(localStorage.getItem(app.STORAGE_KEY), this.currentPin); app.pin = this.currentPin; this.unlock(); }
+                    catch(e) { alert("PIN erroné"); this.clearPin(); }
+                } else if(this.mode === 'change_pin_old') {
+                    if(this.currentPin === app.pin) { this.mode = 'change_pin_new'; this.clearPin(); document.getElementById('pin-title').innerText = "Nouveau PIN"; }
+                    else { alert("PIN incorrect"); this.clearPin(); }
+                } else if(this.mode === 'change_pin_new') {
+                    this.newPin = this.currentPin; this.mode = 'change_pin_confirm'; this.clearPin(); document.getElementById('pin-title').innerText = "Confirmez";
+                } else if(this.mode === 'change_pin_confirm') {
+                    if(this.currentPin === this.newPin) { app.pin = this.newPin; await app.saveData(); alert("Succès"); this.unlock(); }
+                    else { alert("Erreur"); this.mode = 'change_pin_new'; this.clearPin(); }
+                }
+            },
+            unlock() { document.getElementById('auth-view').classList.add('hidden'); document.getElementById('app-ui').classList.remove('hidden'); app.init(); },
+            lockApp() { location.reload(); },
+            startChangePin() { this.mode = 'change_pin_old'; document.getElementById('auth-view').classList.remove('hidden'); document.getElementById('app-ui').classList.add('hidden'); document.getElementById('btn-cancel-change').classList.remove('hidden'); this.clearPin(); }
+        };
+
+        const app = {
+            visits: [], STORAGE_KEY: 'data', pin: '', doctorName: '',
+            init() { 
+                this.doctorName = localStorage.getItem('docpocket_doc_name'); 
+                document.getElementById('app-title-display').textContent = `DocPocket Pro - ${this.doctorName}`;
+                this.loadData();
+            },
+            async loadData() {
+                const raw = localStorage.getItem(this.STORAGE_KEY);
+                if(raw) this.visits = JSON.parse(await cryptoUtils.decrypt(raw, this.pin));
+                this.render();
+            },
+            async saveData() { localStorage.setItem(this.STORAGE_KEY, await cryptoUtils.encrypt(JSON.stringify(this.visits), this.pin)); },
+            render() { 
+                const list = document.getElementById('visits-list'); list.innerHTML = '';
+                this.visits.forEach(v => {
+                    list.innerHTML += `<div class="visit-card"><h3>${v.name}</h3><p>Honoraires: ${v.fee} DT</p><button class="btn btn-outline" onclick="app.generatePDF('${v.id}')">PDF</button></div>`;
+                });
+            },
+            generatePDF(id) {
+                const v = this.visits.find(x => x.id === id);
+                document.getElementById('p-name').innerText = v.name;
+                document.getElementById('p-fee').innerText = v.fee + " DT";
+                exportToPDF('print-view', 'Consultation');
+            },
+            showForm() { document.getElementById('dashboard-view').classList.add('hidden'); document.getElementById('form-view').classList.remove('hidden'); },
+            showDashboard() { document.getElementById('form-view').classList.add('hidden'); document.getElementById('dashboard-view').classList.remove('hidden'); },
+            async saveVisit(e) {
+                e.preventDefault();
+                const v = { id: Date.now().toString(), name: document.getElementById('patient-name').value, fee: document.getElementById('visit-fee').value, date: new Date().toISOString() };
+                this.visits.push(v); await this.saveData(); this.showDashboard(); this.render();
+            },
+            async exportBackup() {
+                const blob = new Blob([localStorage.getItem(this.STORAGE_KEY)], {type: "application/json"});
+                const a = document.createElement('a'); a.download = `DocPocket_Sauvegarde_${getFileTimestamp()}.json`; a.href = URL.createObjectURL(blob); a.click();
+            },
+            async importBackup(e) {
+                const r = new FileReader(); r.onload = (ev) => { localStorage.setItem(this.STORAGE_KEY, ev.target.result); location.reload(); };
+                r.readAsText(e.target.files[0]);
+            }
+        };
+
+        window.onload = () => auth.init();
     </script>
 </body>
 </html>
