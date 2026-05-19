@@ -31,6 +31,31 @@
         .hidden { display: none !important; }
 
         /* =========================================
+           NOTIFICATION DE BIENVENUE (TOAST)
+           ========================================= */
+        #toast-notification {
+            position: fixed;
+            top: -100px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: var(--primary-color);
+            color: white;
+            padding: 1rem 2rem;
+            border-radius: 30px;
+            box-shadow: 0 4px 15px rgba(0, 51, 153, 0.4);
+            font-weight: bold;
+            font-size: 1.1rem;
+            z-index: 10000;
+            transition: top 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            text-align: center;
+            width: max-content;
+            max-width: 90%;
+        }
+        #toast-notification.show {
+            top: 20px;
+        }
+
+        /* =========================================
            ÉCRAN DE VERROUILLAGE & LICENCE
            ========================================= */
         #auth-view { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--primary-color); display: flex; justify-content: center; align-items: center; z-index: 9999; padding: 1rem; }
@@ -47,9 +72,9 @@
            STRUCTURE DE L'APPLICATION (RESPONSIVE)
            ========================================= */
         .app-header { background-color: var(--primary-color); color: white; padding: 0.8rem 1rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex-wrap: wrap; gap: 0.5rem; }
-        .logo-container { display: flex; align-items: center; gap: 10px; }
+        .logo-container { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 200px;}
         .header-logo { width: 32px; height: 32px; object-fit: contain; border-radius: 6px; background: white; padding: 2px; }
-        .app-header h1 { font-size: 1.2rem; margin: 0;}
+        .app-header h1 { font-size: 1.1rem; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
         .header-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
         #date-display { font-size: 0.85rem; }
         
@@ -110,6 +135,7 @@
             .form-group { margin-bottom: 1.2rem; }
             .form-actions { flex-direction: row; justify-content: flex-end; padding: 1rem 0; margin: 0; background: transparent; border:none; position: static;}
             .form-actions .btn { width: auto; }
+            .app-header h1 { font-size: 1.3rem; }
         }
 
         /* =========================================
@@ -120,7 +146,7 @@
         @media print {
             @page { margin: 0; }
             body { background: white; color: black; font-size: 11pt; padding: 15mm; overflow: visible; }
-            #app-ui, #auth-view { display: none !important; }
+            #app-ui, #auth-view, #toast-notification { display: none !important; }
             
             body.print-single #print-view { display: block !important; width: 100%; }
             body.print-monthly #print-report-view { display: block !important; width: 100%; }
@@ -139,6 +165,8 @@
     </style>
 </head>
 <body>
+
+    <div id="toast-notification">👋 Bonjour Docteur</div>
 
     <div id="auth-view" class="hidden">
         <div class="auth-card">
@@ -353,7 +381,6 @@
             currentPinInput: "", mode: "login", tempNewPin: "",
 
             init() {
-                // RÉTABLISSEMENT DE LA SÉCURITÉ COMPLÈTE
                 const docName = localStorage.getItem('docpocket_doc_name');
                 const isPinConfigured = localStorage.getItem('docpocket_pin_configured');
 
@@ -396,7 +423,6 @@
             clearPin() { this.currentPinInput = ""; this.updatePinDisplay(); },
             updatePinDisplay() { document.getElementById('pin-dots').innerText = "*".repeat(this.currentPinInput.length); },
 
-            // --- NOUVEAU : SYSTÈME DE CHANGEMENT DE PIN ---
             startChangePin() {
                 this.mode = 'change_pin_old';
                 document.getElementById('app-ui').classList.add('hidden');
@@ -411,13 +437,12 @@
             cancelChangePin() {
                 this.clearPin();
                 document.getElementById('btn-cancel-change').classList.add('hidden');
-                this.unlockApp(); // Retourne à l'application car déjà authentifié
+                this.unlockApp();
             },
 
             async submitPin() {
                 if (this.currentPinInput.length !== 4) return alert("Le code doit faire 4 chiffres.");
 
-                // 1. Première configuration
                 if (this.mode === 'setup') {
                     try {
                         const encryptedEmpty = await cryptoUtils.encrypt("[]", this.currentPinInput);
@@ -427,7 +452,6 @@
                         this.unlockApp();
                     } catch(e) { alert("Erreur d'initialisation sécurisée."); }
                 
-                // 2. Connexion normale
                 } else if (this.mode === 'login') {
                     try {
                         const encryptedData = localStorage.getItem(app.STORAGE_KEY);
@@ -441,7 +465,6 @@
                         alert("Code PIN incorrect."); this.clearPin();
                     }
                 
-                // 3. Changement de PIN : Vérification Ancien
                 } else if (this.mode === 'change_pin_old') {
                     if (this.currentPinInput === app.currentPin) {
                         this.mode = 'change_pin_new';
@@ -451,18 +474,16 @@
                         alert("Ancien code PIN incorrect."); this.clearPin();
                     }
                 
-                // 4. Changement de PIN : Saisie du Nouveau
                 } else if (this.mode === 'change_pin_new') {
                     this.tempNewPin = this.currentPinInput;
                     this.mode = 'change_pin_confirm';
                     document.getElementById('pin-title').innerText = "Confirmez le NOUVEAU PIN";
                     this.clearPin();
 
-                // 5. Changement de PIN : Confirmation et Re-Chiffrement
                 } else if (this.mode === 'change_pin_confirm') {
                     if (this.currentPinInput === this.tempNewPin) {
                         app.currentPin = this.tempNewPin;
-                        await app.saveData(); // Chiffre toute la base avec le nouveau PIN
+                        await app.saveData();
                         alert("✅ Code PIN modifié avec succès !");
                         document.getElementById('btn-cancel-change').classList.add('hidden');
                         this.unlockApp();
@@ -488,16 +509,22 @@
             },
 
             unlockApp() {
-                localStorage.setItem('docpocket_bio_token', btoa(app.currentPin)); // Maj de la biométrie avec le PIN actuel
+                localStorage.setItem('docpocket_bio_token', btoa(app.currentPin)); 
                 document.getElementById('auth-view').classList.add('hidden');
                 document.getElementById('app-ui').classList.remove('hidden');
                 app.init(); 
+                
+                // NOUVEAU : Message de bienvenue "Toast"
+                const toast = document.getElementById('toast-notification');
+                toast.textContent = `👋 Bonjour ${app.doctorName}`;
+                toast.classList.add('show');
+                setTimeout(() => toast.classList.remove('show'), 3000);
             },
 
             lockApp() { 
-                app.currentPin = ""; app.visits = []; // Purge de la mémoire vive
+                app.currentPin = ""; app.visits = []; 
                 document.getElementById('app-ui').classList.add('hidden'); 
-                this.init(); // Relance l'écran de login
+                this.init(); 
                 this.clearPin(); 
             }
         };
@@ -507,11 +534,12 @@
 
             init() {
                 this.doctorName = localStorage.getItem('docpocket_doc_name') || 'Dr';
-                document.getElementById('app-title-display').textContent = `DocPocket Pro`;
+                
+                // NOUVEAU : Le nom du médecin est accolé au titre
+                document.getElementById('app-title-display').textContent = `DocPocket Pro - ${this.doctorName}`;
                 
                 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
                 
-                // Intercepter la demande d'installation PWA
                 window.addEventListener('beforeinstallprompt', (e) => {
                     e.preventDefault();
                     this.deferredPrompt = e;
@@ -522,12 +550,10 @@
                 document.getElementById('date-display').textContent = new Date().toLocaleDateString('fr-FR', dateOptions);
                 const now = new Date(); document.getElementById('report-month').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
-                // Les données sont déjà chargées par auth.submitPin() lors du login
                 this.renderDashboard();
                 document.getElementById('search-input').addEventListener('input', (e) => this.renderDashboard(e.target.value.toLowerCase()));
             },
 
-            // --- NOUVEAU : INSTALLATION PWA ---
             async installPWA() {
                 if (this.deferredPrompt) {
                     this.deferredPrompt.prompt();
@@ -588,7 +614,7 @@
                 reader.onload = async (ev) => {
                     try {
                         const importedData = ev.target.result; 
-                        await cryptoUtils.decrypt(importedData, this.currentPin); // Vérifie si le PIN est compatible
+                        await cryptoUtils.decrypt(importedData, this.currentPin);
                         if (confirm("⚠️ Écraser les données actuelles avec cette sauvegarde ? Action définitive.")) { 
                             localStorage.setItem(this.STORAGE_KEY, importedData); 
                             alert("✅ Restauration réussie ! Redémarrage."); 
@@ -597,7 +623,7 @@
                     } catch (error) { alert("❌ Restauration impossible : Ce fichier appartient à un autre code PIN ou est corrompu."); }
                 };
                 reader.readAsText(file);
-                e.target.value = ''; // Reset file input
+                e.target.value = ''; 
             },
 
             showDashboard() { document.getElementById('form-view').classList.add('hidden'); document.getElementById('dashboard-view').classList.remove('hidden'); this.renderDashboard(); },
