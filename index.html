@@ -7,6 +7,8 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="rgb(0, 51, 153)">
     
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    
     <style>
         /* =========================================
            VARIABLES DE THÈME ET STYLE DE BASE
@@ -30,12 +32,10 @@
         h1, h2, h3, h4 { color: var(--secondary-color); }
         .hidden { display: none !important; }
 
-        /* =========================================
-           NOTIFICATION DE BIENVENUE (TOAST)
-           ========================================= */
+        /* NOTIFICATION DE BIENVENUE */
         #toast-notification {
             position: fixed;
-            top: -100px;
+            top: 20px;
             left: 50%;
             transform: translateX(-50%);
             background-color: var(--primary-color);
@@ -46,18 +46,15 @@
             font-weight: bold;
             font-size: 1.1rem;
             z-index: 10000;
-            transition: top 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
             text-align: center;
             width: max-content;
             max-width: 90%;
+            opacity: 1;
+            transition: opacity 0.5s ease-in-out;
         }
-        #toast-notification.show {
-            top: 20px;
-        }
+        #toast-notification.fade-out { opacity: 0; pointer-events: none; }
 
-        /* =========================================
-           ÉCRAN DE VERROUILLAGE & LICENCE
-           ========================================= */
+        /* ÉCRAN DE VERROUILLAGE & LICENCE */
         #auth-view { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--primary-color); display: flex; justify-content: center; align-items: center; z-index: 9999; padding: 1rem; }
         .auth-card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 100%; max-width: 400px; text-align: center; }
         .auth-logo { width: 70px; height: 70px; object-fit: contain; margin-bottom: 1rem; border-radius: var(--radius); }
@@ -66,12 +63,9 @@
         .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 1rem; max-width: 250px; margin-left: auto; margin-right: auto; }
         .key-btn { background: var(--bg-color); border: none; border-radius: 50%; width: 55px; height: 55px; font-size: 1.3rem; font-weight: bold; color: var(--secondary-color); cursor: pointer; margin: 0 auto; transition: background 0.1s; }
         .key-btn:active { background: #d0d0d0; }
-        .bio-btn { background: transparent; border: 2px solid var(--primary-color); color: var(--primary-color); padding: 0.7rem; border-radius: var(--radius); width: 100%; font-size: 0.95rem; font-weight: bold; cursor: pointer; margin-top: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px; transition: 0.2s;}
-        .bio-btn:active { background: var(--primary-color); color: white; }
+        .bio-btn { background: transparent; border: 2px solid var(--primary-color); color: var(--primary-color); padding: 0.7rem; border-radius: var(--radius); width: 100%; font-size: 0.95rem; font-weight: bold; cursor: pointer; margin-top: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px; }
 
-        /* =========================================
-           STRUCTURE DE L'APPLICATION (RESPONSIVE)
-           ========================================= */
+        /* STRUCTURE DE L'APPLICATION */
         .app-header { background-color: var(--primary-color); color: white; padding: 0.8rem 1rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex-wrap: wrap; gap: 0.5rem; }
         .logo-container { display: flex; align-items: center; gap: 10px; }
         .header-logo { width: 32px; height: 32px; object-fit: contain; border-radius: 6px; background: white; padding: 2px; }
@@ -81,7 +75,6 @@
         
         .container { max-width: 1200px; margin: 1rem auto; padding: 0 0.5rem; }
 
-        /* COMPOSANTS */
         .btn { background-color: var(--primary-color); color: white; border: none; padding: 0.6rem 1rem; border-radius: var(--radius); cursor: pointer; font-size: 0.95rem; font-weight: 500; display: inline-flex; align-items: center; justify-content: center; gap: 0.4rem; transition: 0.2s;}
         .btn:hover { background-color: var(--primary-hover); }
         .btn-outline { background-color: transparent; color: var(--primary-color); border: 1px solid var(--primary-color); }
@@ -96,7 +89,6 @@
         .form-control:focus { outline: none; border-color: var(--primary-color); background-color: white; box-shadow: 0 0 0 2px rgba(0, 90, 111, 0.1); }
         textarea.form-control { resize: vertical; min-height: 60px; }
 
-        /* DASHBOARD MOBILE FIRST */
         .dashboard-controls { display: flex; flex-direction: column; gap: 0.8rem; margin-bottom: 1.5rem; }
         .visits-grid { display: grid; grid-template-columns: 1fr; gap: 1rem; margin-bottom: 2rem; }
         .visit-card { background: var(--card-bg); padding: 1rem; border-radius: var(--radius); box-shadow: var(--shadow); border-left: 4px solid var(--primary-color); display: flex; flex-direction: column; }
@@ -109,17 +101,12 @@
         .backup-actions { display: flex; gap: 0.5rem; width: 100%; flex-wrap: wrap;}
         .backup-actions .btn { flex: 1; font-size: 0.85rem; padding: 0.5rem; min-width: 120px;}
         
-        /* FORMULAIRE MOBILE FIRST */
         .form-section { background: var(--card-bg); padding: 1rem; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 1rem; }
         .form-section h2 { border-bottom: 2px solid var(--bg-color); padding-bottom: 0.4rem; margin-bottom: 1rem; font-size: 1.1rem; }
         .grid-2, .grid-3 { display: grid; grid-template-columns: 1fr; gap: 0.5rem; }
-        
         .form-actions { display: flex; flex-direction: column; gap: 0.5rem; position: sticky; bottom: 0; background: var(--bg-color); padding: 0.8rem 0.5rem; border-top: 1px solid var(--border-color); z-index: 10; margin-left: -0.5rem; margin-right: -0.5rem; }
         .form-actions .btn { width: 100%; }
 
-        /* =========================================
-           MÉDIA QUERIES (TABLETTES & PC)
-           ========================================= */
         @media (min-width: 768px) {
             .container { padding: 0 1rem; margin: 2rem auto; }
             .dashboard-controls { flex-direction: row; }
@@ -133,40 +120,38 @@
             .form-section h2 { font-size: 1.3rem; margin-bottom: 1.5rem; }
             .grid-2 { grid-template-columns: 1fr 1fr; gap: 1rem; }
             .grid-3 { grid-template-columns: repeat(3, 1fr); gap: 1rem; }
-            .form-group { margin-bottom: 1.2rem; }
             .form-actions { flex-direction: row; justify-content: flex-end; padding: 1rem 0; margin: 0; background: transparent; border:none; position: static;}
             .form-actions .btn { width: auto; }
         }
 
         /* =========================================
-           OPTIMISATION IMPRESSION PRO (PDF)
+           STYLES POUR LE GÉNÉRATEUR PDF (HTML2PDF)
+           Sortis du @media print pour être visibles par l'outil
            ========================================= */
-        #print-view, #print-report-view { display: none; }
+        #print-view, #print-report-view { display: none; background: white; color: black; font-size: 11pt; padding: 10mm; width: 100%; max-width: 800px; margin: 0 auto; }
+        .print-header { text-align: center; border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center;}
+        .print-logo { width: 60px; height: 60px; object-fit: contain; margin-bottom: 5px; }
+        .print-header h1 { font-size: 16pt; margin-bottom: 5px; color: black;}
+        .print-section { display: block; width: 100%; margin-bottom: 15px; page-break-inside: avoid; }
+        .print-section h3 { color: black; border-bottom: 1px solid #ccc; padding-bottom: 2px; margin-bottom: 5px; font-size: 12pt; text-transform: uppercase; }
+        .print-row { display: flex; flex-wrap: wrap; margin-bottom: 5px; }
+        .print-col { flex: 1; min-width: 180px; }
+        .print-label { font-weight: bold; margin-right: 5px; }
+        .print-value { white-space: pre-wrap; }
         
+        /* Protection pour l'impression système classique si déclenchée manuellement */
         @media print {
             @page { margin: 0; }
-            body { background: white; color: black; font-size: 11pt; padding: 15mm; overflow: visible; }
+            body { background: white; }
             #app-ui, #auth-view, #toast-notification { display: none !important; }
-            
-            body.print-single #print-view { display: block !important; width: 100%; }
-            body.print-monthly #print-report-view { display: block !important; width: 100%; }
-            
-            .print-header { text-align: center; border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center;}
-            .print-logo { width: 60px; height: 60px; object-fit: contain; margin-bottom: 5px; }
-            .print-header h1 { font-size: 16pt; margin-bottom: 5px; }
-            
-            .print-section { display: block; width: 100%; margin-bottom: 15px; page-break-inside: avoid; }
-            .print-section h3 { color: black; border-bottom: 1px solid #ccc; padding-bottom: 2px; margin-bottom: 5px; font-size: 12pt; text-transform: uppercase; }
-            .print-row { display: flex; flex-wrap: wrap; margin-bottom: 5px; }
-            .print-col { flex: 1; min-width: 180px; }
-            .print-label { font-weight: bold; margin-right: 5px; }
-            .print-value { white-space: pre-wrap; }
+            body.print-single #print-view { display: block !important; }
+            body.print-monthly #print-report-view { display: block !important; }
         }
     </style>
 </head>
 <body>
 
-    <div id="toast-notification">👋 Bonjour Docteur</div>
+    <div id="toast-notification" class="hidden">👋 Bonjour <span id="toast-doc-name"></span></div>
 
     <div id="auth-view" class="hidden">
         <div class="auth-card">
@@ -219,7 +204,6 @@
 
         <div class="container">
             <main id="dashboard-view">
-                
                 <div id="pwa-install-banner" class="hidden" style="background: #e3f2fd; padding: 1rem; border-radius: var(--radius); margin-bottom: 1.5rem; text-align: center; border: 1px solid #90caf9;">
                     <p style="margin-bottom: 0.5rem; font-weight: bold; color: #1565c0;">📱 Profitez de l'expérience plein écran !</p>
                     <p style="font-size: 0.85rem; margin-bottom: 1rem; color: #444;">Installez DocPocket sur votre appareil pour faire disparaître la barre d'adresse du navigateur.</p>
@@ -240,7 +224,7 @@
                     </div>
                     <div class="backup-actions">
                         <input type="month" id="report-month" class="form-control" style="flex:1; padding: 0.5rem;">
-                        <button class="btn" onclick="app.generateMonthlyReport()" style="flex:1;">Générer</button>
+                        <button class="btn" onclick="app.generateMonthlyReport(event)" style="flex:1;">Générer (PDF)</button>
                     </div>
                 </div>
 
@@ -250,7 +234,7 @@
                         <p>Sauvegarde, restauration et PIN.</p>
                     </div>
                     <div class="backup-actions">
-                        <button class="btn btn-outline" onclick="app.exportBackup()">📥 Exporter Données</button>
+                        <button class="btn btn-outline" onclick="app.exportBackup()">📥 Sauvegarder</button>
                         <input type="file" id="import-file" style="display:none" accept=".json" onchange="app.importBackup(event)">
                         <button class="btn btn-outline" onclick="document.getElementById('import-file').click()">📤 Restaurer</button>
                         <button class="btn btn-outline" style="border-color: #f57c00; color: #f57c00;" onclick="auth.startChangePin()">🔑 Changer PIN</button>
@@ -403,7 +387,7 @@
                     document.getElementById('auth-license-section').classList.add('hidden');
                     document.getElementById('pin-title').innerText = "Entrez votre Code PIN";
                     
-                    // Affiche le bouton biométrique uniquement si le navigateur sécurisé le permet
+                    // Affiche le bouton biométrique uniquement si environnement sécurisé (HTTPS)
                     if (window.isSecureContext && navigator.credentials && window.PublicKeyCredential) {
                         document.getElementById('btn-biometric').classList.remove('hidden');
                     }
@@ -452,7 +436,6 @@
                         app.currentPin = this.currentPinInput;
                         this.unlockApp();
                     } catch(e) { alert("Erreur d'initialisation sécurisée."); }
-                
                 } else if (this.mode === 'login') {
                     try {
                         const encryptedData = localStorage.getItem(app.STORAGE_KEY);
@@ -465,7 +448,6 @@
                     } catch (error) {
                         alert("Code PIN incorrect."); this.clearPin();
                     }
-                
                 } else if (this.mode === 'change_pin_old') {
                     if (this.currentPinInput === app.currentPin) {
                         this.mode = 'change_pin_new';
@@ -474,13 +456,11 @@
                     } else {
                         alert("Ancien code PIN incorrect."); this.clearPin();
                     }
-                
                 } else if (this.mode === 'change_pin_new') {
                     this.tempNewPin = this.currentPinInput;
                     this.mode = 'change_pin_confirm';
                     document.getElementById('pin-title').innerText = "Confirmez le NOUVEAU PIN";
                     this.clearPin();
-
                 } else if (this.mode === 'change_pin_confirm') {
                     if (this.currentPinInput === this.tempNewPin) {
                         app.currentPin = this.tempNewPin;
@@ -515,11 +495,12 @@
                 document.getElementById('app-ui').classList.remove('hidden');
                 app.init(); 
                 
-                // GESTION DU MESSAGE DE BIENVENUE
+                // NOTIFICATION DE BIENVENUE
                 const toast = document.getElementById('toast-notification');
-                toast.textContent = `👋 Bonjour ${app.doctorName}`;
-                toast.classList.add('show');
-                setTimeout(() => toast.classList.remove('show'), 3000);
+                document.getElementById('toast-doc-name').textContent = app.doctorName || localStorage.getItem('docpocket_doc_name');
+                toast.classList.remove('hidden');
+                setTimeout(() => { toast.classList.add('fade-out'); }, 2500);
+                setTimeout(() => { toast.classList.add('hidden'); toast.classList.remove('fade-out'); }, 3000);
             },
 
             lockApp() { 
@@ -581,7 +562,8 @@
                 } catch(e) { alert("Erreur lors du chiffrement des données."); }
             },
 
-            generateMonthlyReport() {
+            // EXPORTATION DU RAPPORT MENSUEL EN PDF (Dans les téléchargements)
+            async generateMonthlyReport(event) {
                 const [year, month] = document.getElementById('report-month').value.split('-');
                 if(!year) return;
                 const filtered = this.visits.filter(v => new Date(v.date).getFullYear() == year && new Date(v.date).getMonth() == month - 1).sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -594,20 +576,44 @@
                 let total = 0;
                 filtered.forEach(v => {
                     const f = parseFloat(v.fee) || 0; total += f;
-                    tbody.innerHTML += `<tr><td style="padding: 5px;">${new Date(v.date).toLocaleDateString('fr-FR')}</td><td style="padding: 5px;"><b>${v.name}</b></td><td style="padding: 5px;">${v.reason}</td><td style="text-align:right; padding: 5px;"><b>${f>0?f.toFixed(3)+' DT':'-'}</b></td></tr>`;
+                    tbody.innerHTML += `<tr><td style="padding: 5px; border-bottom: 1px solid #eee;">${new Date(v.date).toLocaleDateString('fr-FR')}</td><td style="padding: 5px; border-bottom: 1px solid #eee;"><b>${v.name}</b></td><td style="padding: 5px; border-bottom: 1px solid #eee;">${v.reason}</td><td style="text-align:right; padding: 5px; border-bottom: 1px solid #eee;"><b>${f>0?f.toFixed(3)+' DT':'-'}</b></td></tr>`;
                 });
                 document.getElementById('report-total-sum').textContent = total.toFixed(3);
-                document.body.className = 'print-monthly'; window.print(); document.body.className = '';
+                
+                // Génération HTML2PDF
+                const element = document.getElementById('print-report-view');
+                element.style.display = 'block';
+                
+                const btnText = event.target.innerText;
+                event.target.innerText = "⏳ Génération...";
+
+                try {
+                    await html2pdf().set({
+                        margin: 10,
+                        filename: `Journal_Honoraires_${month}-${year}.pdf`,
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { scale: 2, useCORS: true },
+                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                    }).from(element).save();
+                } finally {
+                    element.style.display = 'none';
+                    event.target.innerText = btnText;
+                }
             },
 
-            // EXPORTATION HORODATÉE AUTOMATIQUE
+            // EXPORTATION DE LA SAUVEGARDE JSON (Date et Heure exactes)
             async exportBackup() {
                 const data = localStorage.getItem(this.STORAGE_KEY); if(!data) return alert("Base vide.");
-                const timestamp = new Date().toISOString().replace(/[:.]/g, '-').slice(0, 16);
+                
+                const now = new Date();
+                const dateStr = now.toLocaleDateString('fr-FR').replace(/\//g, '-');
+                const timeStr = now.toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit', second:'2-digit'}).replace(/:/g, '-');
+                const fileName = `DocPocket_Sauvegarde_${dateStr}_${timeStr}.json`;
+
                 const blob = new Blob([data], { type: "application/json" });
                 const a = document.createElement('a'); 
                 a.href = URL.createObjectURL(blob); 
-                a.download = `DocPocket_Sauvegarde_${timestamp}.json`;
+                a.download = fileName;
                 document.body.appendChild(a); a.click(); document.body.removeChild(a);
             },
 
@@ -658,14 +664,39 @@
 
             async deleteVisit(id) { if (confirm("Supprimer définitivement ce dossier médical ?")) { this.visits = this.visits.filter(v => v.id !== id); await this.saveData(); this.renderDashboard(); } },
 
-            generatePDF(id) {
+            // EXPORTATION DU RAPPORT MEDICAL DU PATIENT EN PDF (Dans les téléchargements)
+            async generatePDF(id, buttonElement) {
                 const v = this.visits.find(x => x.id === id); if (!v) return;
+                
+                // Remplissage des données
                 document.getElementById('print-date-display').textContent = new Date(v.date).toLocaleDateString('fr-FR');
                 document.getElementById('print-signature-name').textContent = this.doctorName;
                 ['name','age','phone','reason','history','allergies','bp','pulse','temp','spo2','prescription'].forEach(k => { if(document.getElementById(`p-${k}`)) document.getElementById(`p-${k}`).textContent = v[k]||'-'; });
                 ['gen','hemo','resp','neuro','abdo','other'].forEach(k => { if(document.getElementById(`p-exam-${k}`)) document.getElementById(`p-exam-${k}`).textContent = v[`exam${k.charAt(0).toUpperCase()+k.slice(1)}`]? `${k.toUpperCase()}: ${v[`exam${k.charAt(0).toUpperCase()+k.slice(1)}`]} ` : ''; });
                 document.getElementById('p-fee').textContent = v.fee ? `${parseFloat(v.fee).toFixed(3)} DT` : 'Non facturé';
-                document.body.className = 'print-single'; window.print(); document.body.className = '';
+                
+                // Génération HTML2PDF
+                const element = document.getElementById('print-view');
+                element.style.display = 'block';
+
+                const dateConsult = new Date(v.date).toLocaleDateString('fr-FR').replace(/\//g, '-');
+                const nomFichier = `Rapport_Medical_${v.name.replace(/\s+/g, '_')}_${dateConsult}.pdf`;
+
+                const btnText = buttonElement.innerText;
+                buttonElement.innerText = "⏳...";
+
+                try {
+                    await html2pdf().set({
+                        margin: 10,
+                        filename: nomFichier,
+                        image: { type: 'jpeg', quality: 0.98 },
+                        html2canvas: { scale: 2, useCORS: true },
+                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+                    }).from(element).save();
+                } finally {
+                    element.style.display = 'none';
+                    buttonElement.innerText = btnText;
+                }
             },
 
             renderDashboard(fStr = '') {
@@ -674,7 +705,7 @@
                 if (filtered.length === 0) { list.innerHTML = `<p style="text-align:center; padding:2rem; color:#666;">Aucune consultation trouvée.</p>`; return; }
                 filtered.forEach(v => {
                     const fee = parseFloat(v.fee) || 0;
-                    list.innerHTML += `<div class="visit-card"><div class="visit-card-header"><h3 style="font-size: 1.05rem;">${v.name}</h3><span style="font-size:0.8rem; color:#666;">${new Date(v.date).toLocaleDateString('fr-FR')}</span></div><div class="visit-card-body"><p><strong>Motif :</strong> ${v.reason}</p><p style="color:var(--primary-color); font-weight:bold;">💵 Honoraires : ${fee>0?fee.toFixed(3)+' DT':'-'}</p></div><div class="visit-card-actions"><button class="btn btn-outline" onclick="app.generatePDF('${v.id}')">📄 PDF</button><button class="btn btn-outline" onclick="app.showForm('${v.id}')">✏️ Éditer</button><button class="btn btn-danger" onclick="app.deleteVisit('${v.id}')">🗑️</button></div></div>`;
+                    list.innerHTML += `<div class="visit-card"><div class="visit-card-header"><h3 style="font-size: 1.05rem;">${v.name}</h3><span style="font-size:0.8rem; color:#666;">${new Date(v.date).toLocaleDateString('fr-FR')}</span></div><div class="visit-card-body"><p><strong>Motif :</strong> ${v.reason}</p><p style="color:var(--primary-color); font-weight:bold;">💵 Honoraires : ${fee>0?fee.toFixed(3)+' DT':'-'}</p></div><div class="visit-card-actions"><button class="btn btn-outline" onclick="app.generatePDF('${v.id}', this)">📄 PDF</button><button class="btn btn-outline" onclick="app.showForm('${v.id}')">✏️ Éditer</button><button class="btn btn-danger" onclick="app.deleteVisit('${v.id}')">🗑️</button></div></div>`;
                 });
             }
         };
