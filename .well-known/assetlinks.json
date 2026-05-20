@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "io.github.bkhmondocteur.twa",
+        "sha256_cert_fingerprints": ["71:D6:8A:D2:3D:29:41:17:CD:9B:08:5C:C9:76:A8:1C:44:DB:E1:2F:AE:A1:6F:32:68:43:66:2B:D9:08:39:2E"]
+      }
+    }]
