@@ -1,4 +1,15 @@
 <!DOCTYPE html>
+<html lang="en">
+
+  <head>
+    <meta charset="UTF-8">
+    <title>Untitled</title>
+    
+
+  </head>
+    
+  <body>
+  <!DOCTYPE html>
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
@@ -8,6 +19,7 @@
     <meta name="theme-color" content="rgb(0, 51, 153)">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/localforage/1.10.0/localforage.min.js"></script>
     
     <style>
         :root {
@@ -20,6 +32,7 @@
             --text-muted: #666666;
             --border-color: #E0E0E0;
             --danger-color: #D32F2F;
+            --success-color: #2E7D32;
             --radius: 8px;
             --shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
         }
@@ -66,11 +79,15 @@
         .btn-outline { background-color: transparent; color: var(--primary-color); border: 1px solid var(--primary-color); }
         .btn-outline:hover { background-color: var(--primary-color); color: white; }
         .btn-danger { background-color: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); }
+        .btn-danger-solid { background-color: var(--danger-color); color: white; border: none; }
+        .btn-danger-solid:hover { background-color: #b71c1c; }
+        .btn-success { background-color: var(--success-color); color: white; border: none; }
+        .btn-success:hover { background-color: #1b5e20; }
         .btn-refresh { background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); color: white; padding: 0.3rem 0.6rem; font-size: 0.8rem; border-radius: 4px; }
         
         .form-group { margin-bottom: 0.8rem; display: flex; flex-direction: column; width: 100%; }
         .form-group label { font-weight: 600; margin-bottom: 0.2rem; color: var(--secondary-color); font-size: 0.85rem; }
-        .form-control { padding: 0.6rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.95rem; background-color: #fafafa; transition: border-color 0.2s; width: 100%; }
+        .form-control { padding: 0.6rem; border: 1px solid var(--border-color); border-radius: 6px; font-size: 0.95rem; background-color: #fafafa; transition: border-color 0.2s; width: 100%; box-sizing: border-box; }
         textarea.form-control { resize: vertical; min-height: 60px; }
 
         .dashboard-controls { display: flex; flex-direction: column; gap: 0.8rem; margin-bottom: 1.5rem; }
@@ -89,6 +106,16 @@
         .form-section h2 { border-bottom: 2px solid var(--bg-color); padding-bottom: 0.4rem; margin-bottom: 1rem; font-size: 1.1rem; }
         .grid-2, .grid-3 { display: grid; grid-template-columns: 1fr; gap: 0.5rem; }
         .form-actions { display: flex; flex-direction: column; gap: 0.5rem; position: sticky; bottom: 0; background: var(--bg-color); padding: 0.8rem 0.5rem; border-top: 1px solid var(--border-color); z-index: 10; margin-left: -0.5rem; margin-right: -0.5rem; }
+
+        /* Styles spécifiques au Scanner */
+        .preview-img { width: 100%; max-height: 250px; object-fit: contain; border-radius: 4px; margin-bottom: 10px; background: #000; }
+        .scan-item { display: flex; align-items: center; justify-content: space-between; background: #fdfdfd; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); margin-bottom: 8px; }
+        
+        /* Modal Visionneuse Plein Écran */
+        .modal { display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; flex-direction: column; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box; }
+        .modal-header { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 15px; color: white; position: absolute; top: 0; left: 0; background: linear-gradient(rgba(0,0,0,0.7), transparent); }
+        .modal-content { max-width: 100%; max-height: 85vh; object-fit: contain; border-radius: 4px; }
+        .close-modal { font-size: 2.5rem; color: white; cursor: pointer; line-height: 1; padding: 0 10px; }
 
         @media (min-width: 768px) {
             .container { padding: 0 1rem; margin: 2rem auto; }
@@ -218,6 +245,7 @@
 
             <main id="form-view" class="hidden">
                 <button class="btn btn-outline" onclick="app.showDashboard()" style="margin-bottom: 1rem; width: 100%;">← Retour au tableau de bord</button>
+                
                 <form id="consultation-form" onsubmit="app.saveVisit(event)">
                     <input type="hidden" id="visit-id">
                     
@@ -241,6 +269,30 @@
                             <div class="form-group"><label>Antécédents</label><textarea id="medical-history" class="form-control"></textarea></div>
                             <div class="form-group"><label>Allergies</label><textarea id="allergies" class="form-control"></textarea></div>
                         </div>
+                    </section>
+
+                    <section class="form-section" id="scanner-section">
+                        <h2>📸 Résultats d'exploration</h2>
+                        <p style="font-size: 0.85rem; color: var(--text-muted); margin-bottom: 10px;">Numérisez directement les bilans ou radiographies liés à cette consultation.</p>
+                        
+                        <label for="camera-input" class="btn" style="width: 100%; display: block; text-align: center; margin-bottom: 15px;">
+                            🔍 Scanner un document
+                        </label>
+                        <input type="file" id="camera-input" accept="image/*" capture="environment" style="display: none;" onchange="app.handleCameraInput(event)">
+                        
+                        <div id="scanner-preview-section" class="hidden" style="background: #f9f9f9; padding: 15px; border: 1px dashed var(--primary-color); border-radius: 8px; margin-bottom: 15px;">
+                            <img id="scanner-preview" class="preview-img">
+                            <div class="form-group" style="margin-bottom: 10px;">
+                                <label>Nature de l'examen :</label>
+                                <input type="text" id="scan-name" class="form-control" placeholder="Ex: Radio Thorax, Bilan Biologique...">
+                            </div>
+                            <div style="display: flex; gap: 10px;">
+                                <button type="button" class="btn btn-success" style="flex: 1;" onclick="app.saveScan()">💾 Ajouter au dossier</button>
+                                <button type="button" class="btn btn-danger-solid" style="flex: 1;" onclick="app.cancelScan()">❌ Annuler</button>
+                            </div>
+                        </div>
+
+                        <div id="scans-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
                     </section>
                     
                     <section class="form-section">
@@ -278,6 +330,17 @@
                 </form>
             </main>
         </div>
+    </div>
+
+    <div id="view-scan-modal" class="modal hidden">
+        <div class="modal-header">
+            <div>
+                <h3 id="modal-scan-title" style="margin: 0; font-size: 1.2rem; color: white;">Titre de l'examen</h3>
+                <span id="modal-scan-date" style="font-size: 0.85rem; opacity: 0.8;">Date</span>
+            </div>
+            <span class="close-modal" onclick="app.closeScanViewer()">&times;</span>
+        </div>
+        <img id="modal-scan-img" class="modal-content" src="" onclick="app.closeScanViewer()">
     </div>
 
     <div id="print-view">
@@ -333,19 +396,6 @@
                 return new TextDecoder().decode(decryptedBuffer);
             }
         };
-
-        async function saveOrShareFile(filename, blob, mimeType) {
-            const file = new File([blob], filename, { type: mimeType });
-            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
-                try {
-                    await navigator.share({ files: [file], title: filename }); return; 
-                } catch (err) { console.log("Partage annulé", err); }
-            }
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.style.display = 'none'; a.href = url; a.download = filename;
-            document.body.appendChild(a); a.click();
-            setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 100);
-        }
 
         const auth = {
             currentPinInput: "", mode: "login", tempNewPin: "",
@@ -462,7 +512,6 @@
                 }
             },
 
-            // --- NOUVEAU : ENREGISTREMENT DE L'EMPREINTE (PASSKEY) ---
             async registerBiometrics() {
                 try {
                     const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
@@ -483,7 +532,7 @@
                         const credIdArray = new Uint8Array(credential.rawId);
                         const credIdBase64 = btoa(String.fromCharCode.apply(null, credIdArray));
                         localStorage.setItem('docpocket_passkey_id', credIdBase64);
-                        localStorage.setItem('docpocket_bio_token', btoa(app.currentPin)); // Lie le PIN actuel à l'empreinte
+                        localStorage.setItem('docpocket_bio_token', btoa(app.currentPin));
                         alert("✅ Biométrie activée avec succès ! Vous pourrez utiliser votre empreinte à la prochaine connexion.");
                     }
                 } catch (error) {
@@ -492,12 +541,9 @@
                 }
             },
 
-            // --- NOUVEAU : UTILISATION DE L'EMPREINTE ---
             async useBiometrics() {
                 const savedCredId = localStorage.getItem('docpocket_passkey_id');
-                if (!savedCredId) {
-                    return alert("⚠️ Aucune empreinte configurée. Veuillez vous connecter avec votre code PIN, puis aller dans les Paramètres pour activer l'empreinte.");
-                }
+                if (!savedCredId) return alert("⚠️ Aucune empreinte configurée.");
 
                 try {
                     const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
@@ -521,9 +567,7 @@
                             alert("Erreur de liaison. Veuillez utiliser le code PIN.");
                         }
                     }
-                } catch (error) {
-                    console.log("Authentification biométrique annulée.", error);
-                }
+                } catch (error) { console.log("Authentification biométrique annulée.", error); }
             },
 
             unlockApp() {
@@ -539,7 +583,7 @@
             },
 
             lockApp() { 
-                app.currentPin = ""; app.visits = []; 
+                app.currentPin = ""; app.visits = []; app.currentScans = [];
                 document.getElementById('app-ui').classList.add('hidden'); 
                 this.init(); 
                 this.clearPin(); 
@@ -547,13 +591,15 @@
         };
 
         const app = {
-            visits: [], STORAGE_KEY: 'docpocket_visits_data', doctorName: '', currentPin: '', deferredPrompt: null,
+            visits: [], currentScans: [], tempScanBase64: "", STORAGE_KEY: 'docpocket_visits_data', doctorName: '', currentPin: '', deferredPrompt: null,
 
             init() {
                 this.doctorName = localStorage.getItem('docpocket_doc_name') || 'Dr';
                 document.getElementById('app-title-display').textContent = `DocPocket Pro`;
                 
-                // Afficher le bouton d'activation biométrique seulement si supporté
+                // Configuration IndexedDB (localForage) pour les images
+                localforage.config({ name: 'DocPocketPro', storeName: 'dossiers_scans' });
+
                 if (window.isSecureContext && window.PublicKeyCredential) {
                     document.getElementById('btn-activate-bio').classList.remove('hidden');
                 }
@@ -578,9 +624,7 @@
                 if (this.deferredPrompt) {
                     this.deferredPrompt.prompt();
                     const { outcome } = await this.deferredPrompt.userChoice;
-                    if (outcome === 'accepted') {
-                        document.getElementById('pwa-install-banner').classList.add('hidden');
-                    }
+                    if (outcome === 'accepted') document.getElementById('pwa-install-banner').classList.add('hidden');
                     this.deferredPrompt = null;
                 }
             },
@@ -601,6 +645,262 @@
                     localStorage.setItem(this.STORAGE_KEY, encrypted);
                 } catch(e) { alert("Erreur lors du chiffrement des données."); }
             },
+
+            // --- GESTION DU SCANNER ---
+
+            handleCameraInput(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        this.tempScanBase64 = e.target.result;
+                        document.getElementById('scanner-preview').src = this.tempScanBase64;
+                        document.getElementById('scanner-preview-section').classList.remove('hidden');
+                        document.getElementById('scan-name').focus();
+                    };
+                    reader.readAsDataURL(file);
+                }
+            },
+
+            cancelScan() {
+                this.tempScanBase64 = "";
+                document.getElementById('camera-input').value = "";
+                document.getElementById('scan-name').value = "";
+                document.getElementById('scanner-preview-section').classList.add('hidden');
+            },
+
+            saveScan() {
+                const nom = document.getElementById('scan-name').value.trim();
+                if (!nom) return alert("Veuillez donner un nom à cet examen.");
+
+                const newScan = {
+                    id: Date.now(),
+                    name: nom,
+                    date: new Date().toLocaleDateString('fr-FR'),
+                    image: this.tempScanBase64
+                };
+
+                this.currentScans.push(newScan);
+                this.renderScansList();
+                this.cancelScan();
+            },
+
+            editScan(scanId) {
+                const scan = this.currentScans.find(s => s.id === scanId);
+                if (scan) {
+                    const nouveauNom = prompt("Modifier la nature de l'examen :", scan.name);
+                    if (nouveauNom && nouveauNom.trim() !== "") {
+                        scan.name = nouveauNom.trim();
+                        this.renderScansList();
+                    }
+                }
+            },
+
+            deleteScan(scanId) {
+                if(confirm("Supprimer cet examen numérisé ?")) {
+                    this.currentScans = this.currentScans.filter(s => s.id !== scanId);
+                    this.renderScansList();
+                }
+            },
+
+            renderScansList() {
+                const list = document.getElementById('scans-list');
+                list.innerHTML = "";
+                if (this.currentScans.length === 0) {
+                    list.innerHTML = `<p style="text-align:center; color:#888; font-size: 0.9rem; padding: 10px;">Aucun examen numérisé pour cette visite.</p>`;
+                    return;
+                }
+                this.currentScans.forEach(scan => {
+                    list.innerHTML += `
+                    <div class="scan-item">
+                        <div style="flex:1; cursor:pointer;" onclick="app.openScanViewer(${scan.id})">
+                            <strong style="color: var(--secondary-color);">${scan.name}</strong><br>
+                            <span style="font-size:0.8rem; color:#666;">Ajouté le ${scan.date}</span>
+                        </div>
+                        <div style="display: flex; gap: 5px;">
+                            <button type="button" class="btn btn-outline" style="padding: 6px 12px; background: white;" onclick="app.editScan(${scan.id})" title="Modifier le nom">✏️</button>
+                            <button type="button" class="btn btn-danger" style="padding: 6px 12px;" onclick="app.deleteScan(${scan.id})" title="Supprimer">🗑️</button>
+                        </div>
+                    </div>`;
+                });
+            },
+
+            openScanViewer(scanId) {
+                const scan = this.currentScans.find(s => s.id === scanId);
+                if (scan) {
+                    document.getElementById('modal-scan-title').textContent = scan.name;
+                    document.getElementById('modal-scan-date').textContent = scan.date;
+                    document.getElementById('modal-scan-img').src = scan.image;
+                    document.getElementById('view-scan-modal').classList.remove('hidden');
+                }
+            },
+
+            closeScanViewer() {
+                document.getElementById('view-scan-modal').classList.add('hidden');
+                document.getElementById('modal-scan-img').src = "";
+            },
+
+            // --- SAUVEGARDE ET VISITES ---
+
+            async saveVisit(e) {
+                if (e) e.preventDefault(); 
+                
+                // Vérification des champs obligatoires
+                if (!document.getElementById('patient-name').value.trim() || !document.getElementById('visit-reason').value.trim()) {
+                    alert("⚠️ Veuillez remplir au minimum le Nom du patient et le Motif.");
+                    return;
+                }
+
+                try {
+                    const isNew = !document.getElementById('visit-id').value;
+                    const vId = isNew ? Date.now().toString() : document.getElementById('visit-id').value;
+                    const ancienneVisite = this.visits.find(x => String(x.id) === String(vId));
+                    const dateVisite = isNew ? new Date().toISOString() : (ancienneVisite ? ancienneVisite.date : new Date().toISOString());
+
+                    const v = {
+                        id: String(vId), 
+                        date: dateVisite,
+                        name: document.getElementById('patient-name').value, origin: document.getElementById('patient-origin').value, dob: document.getElementById('patient-dob').value, age: document.getElementById('patient-age').value, phone: document.getElementById('patient-phone').value,
+                        reason: document.getElementById('visit-reason').value, history: document.getElementById('medical-history').value, allergies: document.getElementById('allergies').value,
+                        bp: document.getElementById('vital-bp').value, pulse: document.getElementById('vital-pulse').value, rr: document.getElementById('vital-rr').value, temp: document.getElementById('vital-temp').value, spo2: document.getElementById('vital-spo2').value,
+                        examGeneral: document.getElementById('exam-general').value, examHemo: document.getElementById('exam-hemo').value, examResp: document.getElementById('exam-resp').value, examNeuro: document.getElementById('exam-neuro').value, examAbdo: document.getElementById('exam-abdo').value, examOther: document.getElementById('exam-other').value,
+                        prescription: document.getElementById('prescription').value, fee: document.getElementById('visit-fee').value
+                    };
+
+                    if (isNew) {
+                        this.visits.unshift(v); 
+                    } else {
+                        const index = this.visits.findIndex(x => String(x.id) === String(v.id));
+                        if(index !== -1) this.visits[index] = v;
+                    }
+                    
+                    // Sauvegarde dans la mémoire IndexedDB
+                    await localforage.setItem('scans_' + vId, this.currentScans);
+                    await this.saveData(); 
+                    
+                    // Retour au tableau de bord
+                    app.showDashboard();
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+                } catch (erreur) {
+                    console.error("Erreur de sauvegarde :", erreur);
+                    alert("Un problème a empêché l'enregistrement.");
+                }
+            },
+
+            async deleteVisit(id) { 
+                if (confirm("Supprimer définitivement ce dossier médical et ses images ?")) { 
+                    this.visits = this.visits.filter(v => v.id !== id); 
+                    await localforage.removeItem('scans_' + id); 
+                    await this.saveData(); 
+                    this.renderDashboard(); 
+                } 
+            },
+
+            async showForm(id = null) {
+                document.getElementById('dashboard-view').classList.add('hidden'); 
+                document.getElementById('form-view').classList.remove('hidden');
+                document.getElementById('consultation-form').reset(); 
+                document.getElementById('visit-id').value = '';
+                this.cancelScan();
+                
+                if (id) { 
+                    const v = this.visits.find(v => v.id === id); 
+                    if (v) ['id','name','origin','dob','age','phone','reason','history','allergies','bp','pulse','rr','temp','spo2','examGeneral','examHemo','examResp','examNeuro','examAbdo','examOther','prescription','fee'].forEach(k => { if(document.getElementById(k==='id'?'visit-id':(k==='fee'?'visit-fee':(document.getElementById(`patient-${k}`)?`patient-${k}`:(document.getElementById(`visit-${k}`)?`visit-${k}`:(document.getElementById(`vital-${k}`)?`vital-${k}`:(document.getElementById(`exam-${k.replace('exam','')}`.toLowerCase())?`exam-${k.replace('exam','')}`.toLowerCase():k))))))) document.getElementById(k==='id'?'visit-id':(k==='fee'?'visit-fee':(document.getElementById(`patient-${k}`)?`patient-${k}`:(document.getElementById(`visit-${k}`)?`visit-${k}`:(document.getElementById(`vital-${k}`)?`vital-${k}`:(document.getElementById(`exam-${k.replace('exam','')}`.toLowerCase())?`exam-${k.replace('exam','')}`.toLowerCase():k)))))).value = v[k]||''; }); 
+                    
+                    this.currentScans = (await localforage.getItem('scans_' + id)) || [];
+                } else {
+                    this.currentScans = [];
+                }
+                this.renderScansList();
+            },
+
+            async exportBackup() {
+                try {
+                    const visitsEncryptedData = localStorage.getItem(this.STORAGE_KEY); 
+                    if(!visitsEncryptedData) return alert("Base de données vide. Aucune sauvegarde nécessaire.");
+                    
+                    // Rassemble les données et les images
+                    const scansData = {};
+                    await localforage.iterate((value, key) => { scansData[key] = value; });
+
+                    const backupGlobal = {
+                        visits: visitsEncryptedData,
+                        scans: scansData
+                    };
+                    
+                    const chaineJson = JSON.stringify(backupGlobal);
+                    const blob = new Blob([chaineJson], { type: "application/json" });
+                    
+                    const dateStr = new Date().toISOString().slice(0,10);
+                    const fileName = `DocPocket_Sauvegarde_${dateStr}.json`;
+
+                    // CONTOURNEMENT ANDROID : Utilisation du partage natif
+                    const file = new File([blob], fileName, { type: "application/json" });
+                    
+                    if (navigator.share) {
+                        try {
+                            await navigator.share({
+                                title: 'Sauvegarde DocPocket Pro',
+                                files: [file]
+                            });
+                            return; 
+                        } catch (err) {
+                            console.log("Partage annulé par l'utilisateur.");
+                        }
+                    }
+
+                    // Méthode de secours
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.style.display = 'none';
+                    a.href = url;
+                    a.download = fileName;
+                    document.body.appendChild(a);
+                    a.click();
+                    setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
+
+                } catch (erreur) {
+                    console.error("Erreur d'export:", erreur);
+                    alert("Erreur lors de la génération du fichier de sauvegarde.");
+                }
+            },
+
+            importBackup(e) {
+                const file = e.target.files[0]; if(!file) return;
+                const reader = new FileReader();
+                reader.onload = async (ev) => {
+                    try {
+                        const importedData = ev.target.result;
+                        let parsedData;
+                        
+                        try { parsedData = JSON.parse(importedData); } catch(err) { parsedData = null; }
+
+                        if (parsedData && parsedData.visits) {
+                            await cryptoUtils.decrypt(parsedData.visits, this.currentPin); 
+                            if (confirm("⚠️ Écraser les données ET les images actuelles avec cette sauvegarde ? Action définitive.")) { 
+                                localStorage.setItem(this.STORAGE_KEY, parsedData.visits); 
+                                if(parsedData.scans) {
+                                    for (const key in parsedData.scans) { await localforage.setItem(key, parsedData.scans[key]); }
+                                }
+                                alert("✅ Restauration complète réussie ! L'application va redémarrer."); 
+                                window.location.reload(); 
+                            }
+                        } else {
+                            await cryptoUtils.decrypt(importedData, this.currentPin); 
+                            if (confirm("⚠️ Écraser les dossiers actuels avec cette ancienne sauvegarde ? Action définitive.")) { 
+                                localStorage.setItem(this.STORAGE_KEY, importedData); 
+                                alert("✅ Restauration réussie ! L'application va redémarrer."); 
+                                window.location.reload(); 
+                            }
+                        }
+                    } catch (error) { alert("❌ Restauration impossible : Ce fichier appartient à un autre code PIN ou est corrompu."); }
+                };
+                reader.readAsText(file);
+                e.target.value = ''; 
+            },
+
+            // --- RAPPORTS ET AFFICHAGE ---
 
             async generateMonthlyReport(event) {
                 const [year, month] = document.getElementById('report-month').value.split('-');
@@ -630,16 +930,25 @@
 
                 try {
                     const fileName = `Journal_Honoraires_${month}-${year}.pdf`;
-                    const opt = {
-                        margin: 10,
-                        filename: fileName,
-                        image: { type: 'jpeg', quality: 0.98 },
-                        html2canvas: { scale: 2, useCORS: true },
-                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                    };
                     
+                    // Fonction saveOrShareFile externe utilisée pour la sauvegarde locale/partage mobile
+                    const opt = { margin: 10, filename: fileName, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
                     const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
-                    await saveOrShareFile(fileName, pdfBlob, 'application/pdf');
+                    
+                    // Contournement Android pour PDF 
+                    const filePDF = new File([pdfBlob], fileName, { type: "application/pdf" });
+                    if (navigator.share) {
+                        try {
+                            await navigator.share({ title: fileName, files: [filePDF] });
+                        } catch (err) {
+                            console.log("Partage PDF annulé");
+                        }
+                    } else {
+                        const url = URL.createObjectURL(pdfBlob);
+                        const a = document.createElement('a'); a.style.display = 'none'; a.href = url; a.download = fileName;
+                        document.body.appendChild(a); a.click();
+                        setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 100);
+                    }
 
                 } finally {
                     element.style.display = 'none';
@@ -647,65 +956,13 @@
                 }
             },
 
-            async exportBackup() {
-                const data = localStorage.getItem(this.STORAGE_KEY); 
-                if(!data) return alert("Base vide.");
-                
-                const now = new Date();
-                const dateStr = now.toLocaleDateString('fr-FR').replace(/\//g, '-');
-                const timeStr = now.toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit', second:'2-digit'}).replace(/:/g, '-');
-                const fileName = `DocPocket_Sauvegarde_${dateStr}_${timeStr}.json`;
-
-                const blob = new Blob([data], { type: "application/json" });
-                await saveOrShareFile(fileName, blob, 'application/json');
-            },
-
-            importBackup(e) {
-                const file = e.target.files[0]; if(!file) return;
-                const reader = new FileReader();
-                reader.onload = async (ev) => {
-                    try {
-                        const importedData = ev.target.result; 
-                        await cryptoUtils.decrypt(importedData, this.currentPin); 
-                        if (confirm("⚠️ Écraser les données actuelles avec cette sauvegarde ? Action définitive.")) { 
-                            localStorage.setItem(this.STORAGE_KEY, importedData); 
-                            alert("✅ Restauration réussie ! Redémarrage."); 
-                            window.location.reload(); 
-                        }
-                    } catch (error) { alert("❌ Restauration impossible : Ce fichier appartient à un autre code PIN ou est corrompu."); }
-                };
-                reader.readAsText(file);
-                e.target.value = ''; 
-            },
-
             showDashboard() { document.getElementById('form-view').classList.add('hidden'); document.getElementById('dashboard-view').classList.remove('hidden'); this.renderDashboard(); },
-            showForm(id = null) {
-                document.getElementById('dashboard-view').classList.add('hidden'); document.getElementById('form-view').classList.remove('hidden');
-                document.getElementById('consultation-form').reset(); document.getElementById('visit-id').value = '';
-                if (id) { const v = this.visits.find(v => v.id === id); if (v) ['id','name','origin','dob','age','phone','reason','history','allergies','bp','pulse','rr','temp','spo2','examGeneral','examHemo','examResp','examNeuro','examAbdo','examOther','prescription','fee'].forEach(k => { if(document.getElementById(k==='id'?'visit-id':(k==='fee'?'visit-fee':(document.getElementById(`patient-${k}`)?`patient-${k}`:(document.getElementById(`visit-${k}`)?`visit-${k}`:(document.getElementById(`vital-${k}`)?`vital-${k}`:(document.getElementById(`exam-${k.replace('exam','')}`.toLowerCase())?`exam-${k.replace('exam','')}`.toLowerCase():k))))))) document.getElementById(k==='id'?'visit-id':(k==='fee'?'visit-fee':(document.getElementById(`patient-${k}`)?`patient-${k}`:(document.getElementById(`visit-${k}`)?`visit-${k}`:(document.getElementById(`vital-${k}`)?`vital-${k}`:(document.getElementById(`exam-${k.replace('exam','')}`.toLowerCase())?`exam-${k.replace('exam','')}`.toLowerCase():k)))))).value = v[k]||''; }); }
-            },
-
+            
             formatDOBAndCalculateAge(input) {
                 let v = input.value.replace(/\D/g, ''); if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2); if (v.length > 5) v = v.slice(0, 5) + '/' + v.slice(5, 9); input.value = v;
                 if (v.length === 10) { const p = v.split('/'); const age = Math.abs(new Date(Date.now() - new Date(p[2], p[1]-1, p[0]).getTime()).getUTCFullYear() - 1970); document.getElementById('patient-age').value = age > 0 ? `${age} ans` : '< 1 an'; }
             },
             calculateApproximateDOB(input) { const v = input.value.replace(/\D/g, ''); if (v && !document.getElementById('patient-dob').value) document.getElementById('patient-dob').value = `01/01/${new Date().getFullYear() - parseInt(v, 10)}`; },
-
-            async saveVisit(e) {
-                e.preventDefault(); const isNew = !document.getElementById('visit-id').value;
-                const v = {
-                    id: isNew ? Date.now().toString() : document.getElementById('visit-id').value, date: isNew ? new Date().toISOString() : this.visits.find(x => x.id === document.getElementById('visit-id').value).date,
-                    name: document.getElementById('patient-name').value, origin: document.getElementById('patient-origin').value, dob: document.getElementById('patient-dob').value, age: document.getElementById('patient-age').value, phone: document.getElementById('patient-phone').value,
-                    reason: document.getElementById('visit-reason').value, history: document.getElementById('medical-history').value, allergies: document.getElementById('allergies').value,
-                    bp: document.getElementById('vital-bp').value, pulse: document.getElementById('vital-pulse').value, rr: document.getElementById('vital-rr').value, temp: document.getElementById('vital-temp').value, spo2: document.getElementById('vital-spo2').value,
-                    examGeneral: document.getElementById('exam-general').value, examHemo: document.getElementById('exam-hemo').value, examResp: document.getElementById('exam-resp').value, examNeuro: document.getElementById('exam-neuro').value, examAbdo: document.getElementById('exam-abdo').value, examOther: document.getElementById('exam-other').value,
-                    prescription: document.getElementById('prescription').value, fee: document.getElementById('visit-fee').value
-                };
-                if (isNew) this.visits.unshift(v); else this.visits[this.visits.findIndex(x => x.id === v.id)] = v;
-                await this.saveData(); this.showDashboard();
-            },
-
-            async deleteVisit(id) { if (confirm("Supprimer définitivement ce dossier médical ?")) { this.visits = this.visits.filter(v => v.id !== id); await this.saveData(); this.renderDashboard(); } },
 
             async generatePDF(id, buttonElement) {
                 const v = this.visits.find(x => x.id === id); if (!v) return;
@@ -722,22 +979,26 @@
                 const nomFichier = `Rapport_Medical_${v.name.replace(/\s+/g, '_')}_${dateConsult}.pdf`;
 
                 let btnText = "📄 PDF";
-                if (buttonElement) {
-                    btnText = buttonElement.innerText;
-                    buttonElement.innerText = "⏳...";
-                }
+                if (buttonElement) { btnText = buttonElement.innerText; buttonElement.innerText = "⏳..."; }
 
                 try {
-                    const opt = {
-                        margin: 10,
-                        filename: nomFichier,
-                        image: { type: 'jpeg', quality: 0.98 },
-                        html2canvas: { scale: 2, useCORS: true },
-                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-                    };
-                    
+                    const opt = { margin: 10, filename: nomFichier, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
                     const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
-                    await saveOrShareFile(nomFichier, pdfBlob, 'application/pdf');
+                    
+                    // Contournement Android pour PDF
+                    const filePDF = new File([pdfBlob], nomFichier, { type: "application/pdf" });
+                    if (navigator.share) {
+                        try {
+                            await navigator.share({ title: nomFichier, files: [filePDF] });
+                        } catch (err) {
+                            console.log("Partage PDF annulé");
+                        }
+                    } else {
+                        const url = URL.createObjectURL(pdfBlob);
+                        const a = document.createElement('a'); a.style.display = 'none'; a.href = url; a.download = nomFichier;
+                        document.body.appendChild(a); a.click();
+                        setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 100);
+                    }
 
                 } finally {
                     element.style.display = 'none';
@@ -759,4 +1020,8 @@
         window.addEventListener('DOMContentLoaded', () => auth.init());
     </script>
 </body>
+</html>
+    
+  </body>
+  
 </html>
