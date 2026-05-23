@@ -67,7 +67,7 @@
         /* APP UI */
         .app-header { background-color: var(--primary-color); color: white; padding: 0.8rem 1rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); flex-wrap: wrap; gap: 0.5rem; }
         .logo-container { display: flex; align-items: center; gap: 10px; }
-        .header-logo { width: 32px; height: 32px; object-fit: contain; border-radius: 6px; background: white; padding: 2px; }
+        .header-logo { width: 40px; height: 40px; object-fit: contain; border-radius: 6px; background: white; padding: 2px; }
         .app-header h1 { font-size: 1.2rem; margin: 0;}
         .header-actions { display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; }
         #date-display { font-size: 0.85rem; }
@@ -79,6 +79,7 @@
         .btn-outline { background-color: transparent; color: var(--primary-color); border: 1px solid var(--primary-color); }
         .btn-outline:hover { background-color: var(--primary-color); color: white; }
         .btn-danger { background-color: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); }
+        .btn-danger:hover { background-color: var(--danger-color); color: white; }
         .btn-danger-solid { background-color: var(--danger-color); color: white; border: none; }
         .btn-danger-solid:hover { background-color: #b71c1c; }
         .btn-success { background-color: var(--success-color); color: white; border: none; }
@@ -107,11 +108,11 @@
         .grid-2, .grid-3 { display: grid; grid-template-columns: 1fr; gap: 0.5rem; }
         .form-actions { display: flex; flex-direction: column; gap: 0.5rem; position: sticky; bottom: 0; background: var(--bg-color); padding: 0.8rem 0.5rem; border-top: 1px solid var(--border-color); z-index: 10; margin-left: -0.5rem; margin-right: -0.5rem; }
 
-        /* Styles spécifiques au Scanner */
+        /* Styles Scanner */
         .preview-img { width: 100%; max-height: 250px; object-fit: contain; border-radius: 4px; margin-bottom: 10px; background: #000; }
         .scan-item { display: flex; align-items: center; justify-content: space-between; background: #fdfdfd; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); margin-bottom: 8px; }
         
-        /* Modal Visionneuse Plein Écran */
+        /* Modal Visionneuse */
         .modal { display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; flex-direction: column; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box; }
         .modal-header { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 15px; color: white; position: absolute; top: 0; left: 0; background: linear-gradient(rgba(0,0,0,0.7), transparent); }
         .modal-content { max-width: 100%; max-height: 85vh; object-fit: contain; border-radius: 4px; }
@@ -134,18 +135,33 @@
         }
 
         /* =========================================
-           STYLES POUR LE GÉNÉRATEUR PDF (HTML2PDF)
+           STYLES PDF (Impression)
            ========================================= */
-        #print-view, #print-report-view { display: none; background: white; color: black; font-size: 11pt; padding: 10mm; width: 100%; max-width: 800px; margin: 0 auto; }
+        #print-view, #print-report-view { 
+            display: none; 
+            background: white; 
+            color: black; 
+            font-family: 'Bookman Old Style', serif; 
+            font-size: 13pt; 
+            padding: 10mm; 
+            width: 100%; 
+            max-width: 800px; 
+            margin: 0 auto; 
+        }
         .print-header { text-align: center; border-bottom: 2px solid black; padding-bottom: 10px; margin-bottom: 20px; display: flex; flex-direction: column; align-items: center;}
-        .print-logo { width: 60px; height: 60px; object-fit: contain; margin-bottom: 5px; }
-        .print-header h1 { font-size: 16pt; margin-bottom: 5px; color: black;}
+        
+        /* Ajustement du logo pour qu'il s'adapte parfaitement */
+        .print-logo { max-width: 140px; max-height: 90px; object-fit: contain; margin-bottom: 8px; }
+        
+        .print-header h1 { font-size: 18pt; margin-bottom: 5px; color: black;} 
         .print-section { display: block; width: 100%; margin-bottom: 15px; page-break-inside: avoid; }
-        .print-section h3 { color: black; border-bottom: 1px solid #ccc; padding-bottom: 2px; margin-bottom: 5px; font-size: 12pt; text-transform: uppercase; }
+        .print-section h3 { color: black; border-bottom: 1px solid #ccc; padding-bottom: 2px; margin-bottom: 8px; font-size: 14pt; text-transform: uppercase; }
         .print-row { display: flex; flex-wrap: wrap; margin-bottom: 5px; }
         .print-col { flex: 1; min-width: 180px; }
         .print-label { font-weight: bold; margin-right: 5px; }
         .print-value { white-space: pre-wrap; }
+        
+        .print-exam-line { display: block; margin-bottom: 6px; white-space: pre-wrap; }
     </style>
 </head>
 <body>
@@ -154,7 +170,7 @@
 
     <div id="auth-view" class="hidden">
         <div class="auth-card">
-            <img class="auth-logo" src="icon-512.png?v=3" alt="Logo Cabinet" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23003399\'><path d=\'M19 10.5h-5.5V5h-3v5.5H5v3h5.5V19h3v-5.5H19v-3z\'/></svg>'">
+            <img class="auth-logo" src="icon-512.png?v=3" alt="Logo Cabinet" onerror="this.style.display='none'">
             
             <div id="auth-license-section" class="hidden">
                 <h2>Activation DocPocket</h2>
@@ -219,6 +235,18 @@
 
                 <div class="backup-panel">
                     <div>
+                        <strong>🖼️ Personnalisation (Logo)</strong>
+                        <p>Ajoutez l'en-tête de votre cabinet ou association sur les rapports PDF.</p>
+                    </div>
+                    <div class="backup-actions">
+                        <button class="btn btn-outline" onclick="document.getElementById('logo-upload').click()">Importer un logo</button>
+                        <input type="file" id="logo-upload" accept="image/*" style="display:none" onchange="app.changeLogo(event)">
+                        <button class="btn btn-danger" onclick="app.removeLogo()" title="Remettre le logo par défaut">Effacer</button>
+                    </div>
+                </div>
+
+                <div class="backup-panel">
+                    <div>
                         <strong>📊 Rapport Mensuel</strong>
                         <p>Bilan comptable des honoraires.</p>
                     </div>
@@ -231,12 +259,12 @@
                 <div class="backup-panel">
                     <div>
                         <strong>⚙️ Paramètres & Sécurité</strong>
-                        <p>Sauvegarde, restauration, PIN et Empreinte.</p>
+                        <p>Sauvegarde, synchronisation intelligente, PIN.</p>
                     </div>
                     <div class="backup-actions">
                         <button class="btn btn-outline" onclick="app.exportBackup()">📥 Sauvegarder</button>
                         <input type="file" id="import-file" style="display:none" accept=".json" onchange="app.importBackup(event)">
-                        <button class="btn btn-outline" onclick="document.getElementById('import-file').click()">📤 Restaurer</button>
+                        <button class="btn btn-outline" onclick="document.getElementById('import-file').click()">📤 Restaurer / Sync</button>
                         <button class="btn btn-outline" style="border-color: #f57c00; color: #f57c00;" onclick="auth.startChangePin()">🔑 Changer PIN</button>
                         <button id="btn-activate-bio" class="btn btn-outline hidden" style="border-color: #4CAF50; color: #4CAF50; flex-basis: 100%;" onclick="auth.registerBiometrics()">🛡️ Activer Empreinte</button>
                     </div>
@@ -345,22 +373,36 @@
 
     <div id="print-view">
         <div class="print-header">
-            <img class="print-logo" src="icon-512.png?v=3" alt="Logo" onerror="this.style.display='none'">
+            <img class="print-logo" src="icon-512.png?v=3" alt="Logo">
             <h1>Rapport de Consultation</h1><p><span id="print-date-display"></span></p>
         </div>
         <div class="print-section">
             <div class="print-row"><div class="print-col"><span class="print-label">Nom:</span><span id="p-name"></span></div><div class="print-col"><span class="print-label">Âge:</span><span id="p-age"></span></div></div>
             <div class="print-row"><div class="print-col"><span class="print-label">Tél:</span><span id="p-phone"></span></div><div class="print-col"><span class="print-label">Motif:</span><span id="p-reason"></span></div></div>
         </div>
-        <div class="print-section"><h3>Données</h3><p><strong>ATCD:</strong> <span id="p-history"></span> | <strong>Allergies:</strong> <span id="p-allergies"></span></p><p><strong>TA:</strong> <span id="p-bp"></span> | <strong>Pouls:</strong> <span id="p-pulse"></span> | <strong>Temp:</strong> <span id="p-temp"></span> | <strong>SpO2:</strong> <span id="p-spo2"></span></p></div>
-        <div class="print-section"><h3>Examen</h3><p><span id="p-exam-gen"></span> <span id="p-exam-hemo"></span> <span id="p-exam-resp"></span> <span id="p-exam-neuro"></span> <span id="p-exam-abdo"></span> <span id="p-exam-other"></span></p></div>
+        <div class="print-section">
+            <h3>Données</h3>
+            <p><strong>ATCD :</strong> <span id="p-history"></span> | <strong>Allergies :</strong> <span id="p-allergies"></span></p>
+            <p><strong>TA :</strong> <span id="p-bp"></span> | <strong>Pouls :</strong> <span id="p-pulse"></span> | <strong>Temp :</strong> <span id="p-temp"></span> | <strong>SpO2 :</strong> <span id="p-spo2"></span></p>
+        </div>
+        
+        <div class="print-section">
+            <h3>Examen</h3>
+            <div id="p-exam-gen" class="print-exam-line"></div>
+            <div id="p-exam-hemo" class="print-exam-line"></div>
+            <div id="p-exam-resp" class="print-exam-line"></div>
+            <div id="p-exam-neuro" class="print-exam-line"></div>
+            <div id="p-exam-abdo" class="print-exam-line"></div>
+            <div id="p-exam-other" class="print-exam-line"></div>
+        </div>
+        
         <div class="print-section"><h3>Traitement</h3><p id="p-prescription" class="print-value"></p></div>
         <div style="text-align:right; margin-top:30px;"><p><strong>Signature :</strong></p><p id="print-signature-name" style="font-weight:bold;"></p></div>
     </div>
 
     <div id="print-report-view">
         <div class="print-header">
-            <img class="print-logo" src="icon-512.png?v=3" alt="Logo" onerror="this.style.display='none'">
+            <img class="print-logo" src="icon-512.png?v=3" alt="Logo">
             <h1>Journal des Honoraires</h1><p>Période : <span id="report-period-display"></span></p>
         </div>
         <table style="width:100%; border-collapse:collapse; margin-top:20px;">
@@ -593,12 +635,14 @@
         const app = {
             visits: [], currentScans: [], tempScanBase64: "", STORAGE_KEY: 'docpocket_visits_data', doctorName: '', currentPin: '', deferredPrompt: null,
 
-            init() {
+            async init() {
                 this.doctorName = localStorage.getItem('docpocket_doc_name') || 'Dr';
                 document.getElementById('app-title-display').textContent = `DocPocket Pro`;
                 
-                // Configuration IndexedDB (localForage) pour les images
                 localforage.config({ name: 'DocPocketPro', storeName: 'dossiers_scans' });
+
+                // CHARGEMENT DU LOGO PERSONNALISÉ AU DÉMARRAGE
+                await this.loadLogo();
 
                 if (window.isSecureContext && window.PublicKeyCredential) {
                     document.getElementById('btn-activate-bio').classList.remove('hidden');
@@ -619,6 +663,47 @@
                 this.renderDashboard();
                 document.getElementById('search-input').addEventListener('input', (e) => this.renderDashboard(e.target.value.toLowerCase()));
             },
+
+            // --- GESTION DU LOGO PERSONNALISÉ ---
+            
+            async loadLogo() {
+                try {
+                    const logoBase64 = await localforage.getItem('docpocket_custom_logo');
+                    const defaultLogo = "icon-512.png?v=3";
+                    const imgSrc = logoBase64 ? logoBase64 : defaultLogo;
+                    
+                    // Met à jour toutes les images de logo (PDF et interface)
+                    document.querySelectorAll('.print-logo').forEach(img => {
+                        img.src = imgSrc;
+                    });
+                    const headerLogo = document.querySelector('.header-logo');
+                    if (headerLogo) headerLogo.src = imgSrc;
+                } catch(e) { console.error("Erreur de chargement du logo:", e); }
+            },
+
+            changeLogo(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        const base64Logo = e.target.result;
+                        await localforage.setItem('docpocket_custom_logo', base64Logo);
+                        await this.loadLogo();
+                        alert("✅ Logo mis à jour ! Il apparaîtra désormais sur tous vos rapports PDF.");
+                    };
+                    reader.readAsDataURL(file);
+                }
+            },
+
+            async removeLogo() {
+                if(confirm("Voulez-vous remettre le logo par défaut ?")) {
+                    await localforage.removeItem('docpocket_custom_logo');
+                    await this.loadLogo();
+                    alert("🗑️ Logo personnalisé supprimé.");
+                }
+            },
+
+            // --- RESTE DU CODE DE L'APPLICATION ---
 
             async installPWA() {
                 if (this.deferredPrompt) {
@@ -646,8 +731,6 @@
                 } catch(e) { alert("Erreur lors du chiffrement des données."); }
             },
 
-            // --- GESTION DU SCANNER ---
-
             handleCameraInput(event) {
                 const file = event.target.files[0];
                 if (file) {
@@ -673,13 +756,7 @@
                 const nom = document.getElementById('scan-name').value.trim();
                 if (!nom) return alert("Veuillez donner un nom à cet examen.");
 
-                const newScan = {
-                    id: Date.now(),
-                    name: nom,
-                    date: new Date().toLocaleDateString('fr-FR'),
-                    image: this.tempScanBase64
-                };
-
+                const newScan = { id: Date.now(), name: nom, date: new Date().toLocaleDateString('fr-FR'), image: this.tempScanBase64 };
                 this.currentScans.push(newScan);
                 this.renderScansList();
                 this.cancelScan();
@@ -704,12 +781,8 @@
             },
 
             renderScansList() {
-                const list = document.getElementById('scans-list');
-                list.innerHTML = "";
-                if (this.currentScans.length === 0) {
-                    list.innerHTML = `<p style="text-align:center; color:#888; font-size: 0.9rem; padding: 10px;">Aucun examen numérisé pour cette visite.</p>`;
-                    return;
-                }
+                const list = document.getElementById('scans-list'); list.innerHTML = "";
+                if (this.currentScans.length === 0) { list.innerHTML = `<p style="text-align:center; color:#888; font-size: 0.9rem; padding: 10px;">Aucun examen numérisé pour cette visite.</p>`; return; }
                 this.currentScans.forEach(scan => {
                     list.innerHTML += `
                     <div class="scan-item">
@@ -740,12 +813,9 @@
                 document.getElementById('modal-scan-img').src = "";
             },
 
-            // --- SAUVEGARDE ET VISITES ---
-
             async saveVisit(e) {
                 if (e) e.preventDefault(); 
                 
-                // Vérification des champs obligatoires
                 if (!document.getElementById('patient-name').value.trim() || !document.getElementById('visit-reason').value.trim()) {
                     alert("⚠️ Veuillez remplir au minimum le Nom du patient et le Motif.");
                     return;
@@ -760,6 +830,7 @@
                     const v = {
                         id: String(vId), 
                         date: dateVisite,
+                        updatedAt: Date.now(),
                         name: document.getElementById('patient-name').value, origin: document.getElementById('patient-origin').value, dob: document.getElementById('patient-dob').value, age: document.getElementById('patient-age').value, phone: document.getElementById('patient-phone').value,
                         reason: document.getElementById('visit-reason').value, history: document.getElementById('medical-history').value, allergies: document.getElementById('allergies').value,
                         bp: document.getElementById('vital-bp').value, pulse: document.getElementById('vital-pulse').value, rr: document.getElementById('vital-rr').value, temp: document.getElementById('vital-temp').value, spo2: document.getElementById('vital-spo2').value,
@@ -767,25 +838,19 @@
                         prescription: document.getElementById('prescription').value, fee: document.getElementById('visit-fee').value
                     };
 
-                    if (isNew) {
-                        this.visits.unshift(v); 
-                    } else {
+                    if (isNew) { this.visits.unshift(v); } 
+                    else {
                         const index = this.visits.findIndex(x => String(x.id) === String(v.id));
                         if(index !== -1) this.visits[index] = v;
                     }
                     
-                    // Sauvegarde dans la mémoire IndexedDB
                     await localforage.setItem('scans_' + vId, this.currentScans);
                     await this.saveData(); 
                     
-                    // Retour au tableau de bord
                     app.showDashboard();
                     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-                } catch (erreur) {
-                    console.error("Erreur de sauvegarde :", erreur);
-                    alert("Un problème a empêché l'enregistrement.");
-                }
+                } catch (erreur) { console.error("Erreur de sauvegarde :", erreur); alert("Un problème a empêché l'enregistrement."); }
             },
 
             async deleteVisit(id) { 
@@ -807,11 +872,8 @@
                 if (id) { 
                     const v = this.visits.find(v => v.id === id); 
                     if (v) ['id','name','origin','dob','age','phone','reason','history','allergies','bp','pulse','rr','temp','spo2','examGeneral','examHemo','examResp','examNeuro','examAbdo','examOther','prescription','fee'].forEach(k => { if(document.getElementById(k==='id'?'visit-id':(k==='fee'?'visit-fee':(document.getElementById(`patient-${k}`)?`patient-${k}`:(document.getElementById(`visit-${k}`)?`visit-${k}`:(document.getElementById(`vital-${k}`)?`vital-${k}`:(document.getElementById(`exam-${k.replace('exam','')}`.toLowerCase())?`exam-${k.replace('exam','')}`.toLowerCase():k))))))) document.getElementById(k==='id'?'visit-id':(k==='fee'?'visit-fee':(document.getElementById(`patient-${k}`)?`patient-${k}`:(document.getElementById(`visit-${k}`)?`visit-${k}`:(document.getElementById(`vital-${k}`)?`vital-${k}`:(document.getElementById(`exam-${k.replace('exam','')}`.toLowerCase())?`exam-${k.replace('exam','')}`.toLowerCase():k)))))).value = v[k]||''; }); 
-                    
                     this.currentScans = (await localforage.getItem('scans_' + id)) || [];
-                } else {
-                    this.currentScans = [];
-                }
+                } else { this.currentScans = []; }
                 this.renderScansList();
             },
 
@@ -820,50 +882,29 @@
                     const visitsEncryptedData = localStorage.getItem(this.STORAGE_KEY); 
                     if(!visitsEncryptedData) return alert("Base de données vide. Aucune sauvegarde nécessaire.");
                     
-                    // Rassemble les données et les images
                     const scansData = {};
                     await localforage.iterate((value, key) => { scansData[key] = value; });
 
-                    const backupGlobal = {
-                        visits: visitsEncryptedData,
-                        scans: scansData
-                    };
-                    
+                    const backupGlobal = { visits: visitsEncryptedData, scans: scansData };
                     const chaineJson = JSON.stringify(backupGlobal);
                     const blob = new Blob([chaineJson], { type: "application/json" });
                     
                     const dateStr = new Date().toISOString().slice(0,10);
                     const fileName = `DocPocket_Sauvegarde_${dateStr}.json`;
 
-                    // CONTOURNEMENT ANDROID : Utilisation du partage natif
                     const file = new File([blob], fileName, { type: "application/json" });
                     
                     if (navigator.share) {
-                        try {
-                            await navigator.share({
-                                title: 'Sauvegarde DocPocket Pro',
-                                files: [file]
-                            });
-                            return; 
-                        } catch (err) {
-                            console.log("Partage annulé par l'utilisateur.");
-                        }
+                        try { await navigator.share({ title: 'Sauvegarde DocPocket Pro', files: [file] }); return; } 
+                        catch (err) { console.log("Partage annulé par l'utilisateur."); }
                     }
 
-                    // Méthode de secours
                     const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.style.display = 'none';
-                    a.href = url;
-                    a.download = fileName;
-                    document.body.appendChild(a);
-                    a.click();
+                    const a = document.createElement('a'); a.style.display = 'none'; a.href = url; a.download = fileName;
+                    document.body.appendChild(a); a.click();
                     setTimeout(() => { document.body.removeChild(a); URL.revokeObjectURL(url); }, 100);
 
-                } catch (erreur) {
-                    console.error("Erreur d'export:", erreur);
-                    alert("Erreur lors de la génération du fichier de sauvegarde.");
-                }
+                } catch (erreur) { console.error("Erreur d'export:", erreur); alert("Erreur lors de la génération du fichier de sauvegarde."); }
             },
 
             importBackup(e) {
@@ -877,13 +918,42 @@
                         try { parsedData = JSON.parse(importedData); } catch(err) { parsedData = null; }
 
                         if (parsedData && parsedData.visits) {
-                            await cryptoUtils.decrypt(parsedData.visits, this.currentPin); 
-                            if (confirm("⚠️ Écraser les données ET les images actuelles avec cette sauvegarde ? Action définitive.")) { 
-                                localStorage.setItem(this.STORAGE_KEY, parsedData.visits); 
-                                if(parsedData.scans) {
-                                    for (const key in parsedData.scans) { await localforage.setItem(key, parsedData.scans[key]); }
+                            const decryptedVisitsStr = await cryptoUtils.decrypt(parsedData.visits, this.currentPin); 
+                            const importedVisits = JSON.parse(decryptedVisitsStr);
+
+                            if (confirm("🔄 Lancer la synchronisation ?\nLes nouvelles consultations seront ajoutées, et les plus récentes seront conservées en cas de conflit.")) { 
+                                
+                                importedVisits.forEach(importedVisit => {
+                                    const index = this.visits.findIndex(v => String(v.id) === String(importedVisit.id));
+                                    
+                                    if (index === -1) {
+                                        this.visits.push(importedVisit);
+                                    } else {
+                                        const currentVisit = this.visits[index];
+                                        const currentUpdate = currentVisit.updatedAt || new Date(currentVisit.date).getTime();
+                                        const importUpdate = importedVisit.updatedAt || new Date(importedVisit.date).getTime();
+                                        
+                                        if (importUpdate > currentUpdate) { this.visits[index] = importedVisit; }
+                                    }
+                                });
+
+                                this.visits.sort((a, b) => new Date(b.date) - new Date(a.date));
+                                localStorage.setItem(this.STORAGE_KEY, await cryptoUtils.encrypt(JSON.stringify(this.visits), this.currentPin));
+                                
+                                if (parsedData.scans) {
+                                    for (const key in parsedData.scans) {
+                                        const importedScansArray = parsedData.scans[key] || [];
+                                        const currentScansArray = (await localforage.getItem(key)) || [];
+                                        const combinedScans = [...currentScansArray, ...importedScansArray];
+                                        const uniqueScans = combinedScans.reduce((acc, current) => {
+                                            if (!acc.find(item => item.id === current.id)) acc.push(current);
+                                            return acc;
+                                        }, []);
+                                        await localforage.setItem(key, uniqueScans);
+                                    }
                                 }
-                                alert("✅ Restauration complète réussie ! L'application va redémarrer."); 
+
+                                alert("✅ Synchronisation réussie ! Les données ont été fusionnées."); 
                                 window.location.reload(); 
                             }
                         } else {
@@ -894,17 +964,13 @@
                                 window.location.reload(); 
                             }
                         }
-                    } catch (error) { alert("❌ Restauration impossible : Ce fichier appartient à un autre code PIN ou est corrompu."); }
+                    } catch (error) { console.error(error); alert("❌ Restauration impossible : Ce fichier appartient à un autre code PIN ou est corrompu."); }
                 };
-                reader.readAsText(file);
-                e.target.value = ''; 
+                reader.readAsText(file); e.target.value = ''; 
             },
 
-            // --- RAPPORTS ET AFFICHAGE ---
-
             async generateMonthlyReport(event) {
-                const [year, month] = document.getElementById('report-month').value.split('-');
-                if(!year) return;
+                const [year, month] = document.getElementById('report-month').value.split('-'); if(!year) return;
                 const filtered = this.visits.filter(v => new Date(v.date).getFullYear() == year && new Date(v.date).getMonth() == month - 1).sort((a, b) => new Date(a.date) - new Date(b.date));
                 if (filtered.length === 0) return alert("Aucun acte enregistré ce mois.");
 
@@ -919,41 +985,22 @@
                 });
                 document.getElementById('report-total-sum').textContent = total.toFixed(3);
                 
-                const element = document.getElementById('print-report-view');
-                element.style.display = 'block';
-                
-                let btnText = "Générer (PDF)";
-                if (event && event.target) {
-                    btnText = event.target.innerText;
-                    event.target.innerText = "⏳ Génération...";
-                }
+                const element = document.getElementById('print-report-view'); element.style.display = 'block';
+                let btnText = "Générer (PDF)"; if (event && event.target) { btnText = event.target.innerText; event.target.innerText = "⏳ Génération..."; }
 
                 try {
                     const fileName = `Journal_Honoraires_${month}-${year}.pdf`;
-                    
-                    // Fonction saveOrShareFile externe utilisée pour la sauvegarde locale/partage mobile
                     const opt = { margin: 10, filename: fileName, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
                     const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
                     
-                    // Contournement Android pour PDF 
                     const filePDF = new File([pdfBlob], fileName, { type: "application/pdf" });
                     if (navigator.share) {
-                        try {
-                            await navigator.share({ title: fileName, files: [filePDF] });
-                        } catch (err) {
-                            console.log("Partage PDF annulé");
-                        }
+                        try { await navigator.share({ title: fileName, files: [filePDF] }); } catch (err) { console.log("Partage PDF annulé"); }
                     } else {
-                        const url = URL.createObjectURL(pdfBlob);
-                        const a = document.createElement('a'); a.style.display = 'none'; a.href = url; a.download = fileName;
-                        document.body.appendChild(a); a.click();
-                        setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 100);
+                        const url = URL.createObjectURL(pdfBlob); const a = document.createElement('a'); a.style.display = 'none'; a.href = url; a.download = fileName;
+                        document.body.appendChild(a); a.click(); setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 100);
                     }
-
-                } finally {
-                    element.style.display = 'none';
-                    if (event && event.target) event.target.innerText = btnText;
-                }
+                } finally { element.style.display = 'none'; if (event && event.target) event.target.innerText = btnText; }
             },
 
             showDashboard() { document.getElementById('form-view').classList.add('hidden'); document.getElementById('dashboard-view').classList.remove('hidden'); this.renderDashboard(); },
@@ -970,7 +1017,21 @@
                 document.getElementById('print-date-display').textContent = new Date(v.date).toLocaleDateString('fr-FR');
                 document.getElementById('print-signature-name').textContent = this.doctorName;
                 ['name','age','phone','reason','history','allergies','bp','pulse','temp','spo2','prescription'].forEach(k => { if(document.getElementById(`p-${k}`)) document.getElementById(`p-${k}`).textContent = v[k]||'-'; });
-                ['gen','hemo','resp','neuro','abdo','other'].forEach(k => { if(document.getElementById(`p-exam-${k}`)) document.getElementById(`p-exam-${k}`).textContent = v[`exam${k.charAt(0).toUpperCase()+k.slice(1)}`]? `${k.toUpperCase()}: ${v[`exam${k.charAt(0).toUpperCase()+k.slice(1)}`]} ` : ''; });
+                
+                const examLabels = { gen: 'Plan Général', hemo: 'Hémodynamique', resp: 'Respiratoire', neuro: 'Neurologique', abdo: 'Abdominal', other: 'Reste de l\'examen' };
+                ['gen','hemo','resp','neuro','abdo','other'].forEach(k => { 
+                    const el = document.getElementById(`p-exam-${k}`);
+                    if(el) {
+                        const val = v[`exam${k.charAt(0).toUpperCase()+k.slice(1)}`];
+                        if(val && val.trim() !== '') {
+                            el.textContent = `${examLabels[k]} : ${val}`;
+                            el.style.display = 'block';
+                        } else {
+                            el.textContent = '';
+                            el.style.display = 'none';
+                        }
+                    }
+                });
                 
                 const element = document.getElementById('print-view');
                 element.style.display = 'block';
@@ -978,32 +1039,20 @@
                 const dateConsult = new Date(v.date).toLocaleDateString('fr-FR').replace(/\//g, '-');
                 const nomFichier = `Rapport_Medical_${v.name.replace(/\s+/g, '_')}_${dateConsult}.pdf`;
 
-                let btnText = "📄 PDF";
-                if (buttonElement) { btnText = buttonElement.innerText; buttonElement.innerText = "⏳..."; }
+                let btnText = "📄 PDF"; if (buttonElement) { btnText = buttonElement.innerText; buttonElement.innerText = "⏳..."; }
 
                 try {
                     const opt = { margin: 10, filename: nomFichier, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
                     const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
                     
-                    // Contournement Android pour PDF
                     const filePDF = new File([pdfBlob], nomFichier, { type: "application/pdf" });
                     if (navigator.share) {
-                        try {
-                            await navigator.share({ title: nomFichier, files: [filePDF] });
-                        } catch (err) {
-                            console.log("Partage PDF annulé");
-                        }
+                        try { await navigator.share({ title: nomFichier, files: [filePDF] }); } catch (err) { console.log("Partage PDF annulé"); }
                     } else {
-                        const url = URL.createObjectURL(pdfBlob);
-                        const a = document.createElement('a'); a.style.display = 'none'; a.href = url; a.download = nomFichier;
-                        document.body.appendChild(a); a.click();
-                        setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 100);
+                        const url = URL.createObjectURL(pdfBlob); const a = document.createElement('a'); a.style.display = 'none'; a.href = url; a.download = nomFichier;
+                        document.body.appendChild(a); a.click(); setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 100);
                     }
-
-                } finally {
-                    element.style.display = 'none';
-                    if (buttonElement) buttonElement.innerText = btnText;
-                }
+                } finally { element.style.display = 'none'; if (buttonElement) buttonElement.innerText = btnText; }
             },
 
             renderDashboard(fStr = '') {
