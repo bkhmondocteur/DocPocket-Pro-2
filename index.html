@@ -314,7 +314,6 @@
                         <input type="file" id="gallery-input" accept="image/*,application/pdf" style="display: none;" onchange="app.handleCameraInput(event)">
                         
                         <div id="scanner-preview-section" class="hidden" style="background: #f9f9f9; padding: 15px; border: 1px dashed var(--primary-color); border-radius: 8px; margin-bottom: 15px;">
-                            
                             <img id="scanner-preview" class="preview-img hidden">
                             <iframe id="scanner-preview-pdf" class="preview-iframe hidden"></iframe>
                             
@@ -652,8 +651,6 @@
                 document.getElementById('app-title-display').textContent = `DocPocket Pro`;
                 
                 localforage.config({ name: 'DocPocketPro', storeName: 'dossiers_scans' });
-                
-                // Chargement des images personnalisées (Logo et Signature)
                 await this.loadCustomImages();
 
                 if (window.isSecureContext && window.PublicKeyCredential) {
@@ -676,10 +673,8 @@
                 document.getElementById('search-input').addEventListener('input', (e) => this.renderDashboard(e.target.value.toLowerCase()));
             },
 
-            // --- GESTION DU LOGO ET DE LA SIGNATURE ---
             async loadCustomImages() {
                 try {
-                    // Chargement du Logo
                     const logoBase64 = await localforage.getItem('docpocket_custom_logo');
                     const defaultLogo = "icon-512.png?v=3";
                     const imgSrc = logoBase64 ? logoBase64 : defaultLogo;
@@ -687,7 +682,6 @@
                     const headerLogo = document.querySelector('.header-logo');
                     if (headerLogo) headerLogo.src = imgSrc;
 
-                    // Chargement de la Signature
                     const signBase64 = await localforage.getItem('docpocket_custom_signature');
                     document.querySelectorAll('#print-signature-img').forEach(img => {
                         if (signBase64) {
@@ -923,7 +917,6 @@
                 document.getElementById('modal-scan-pdf').src = "";
             },
 
-            // --- NOUVEAU : Enregistrement de la DATE et de l'HEURE ---
             async saveVisit(e) {
                 if (e) e.preventDefault(); 
                 
@@ -938,7 +931,6 @@
                     const isNew = !document.getElementById('visit-id').value;
                     const vId = isNew ? Date.now().toString() : document.getElementById('visit-id').value;
                     
-                    // Récupération de la date et l'heure depuis les champs
                     const dateInput = document.getElementById('visit-date').value;
                     const timeInput = document.getElementById('visit-time').value || "00:00";
                     let dateVisite;
@@ -973,7 +965,7 @@
 
                 } catch (erreur) { 
                     console.error("Erreur de sauvegarde :", erreur); 
-                    alert("Erreur technique : " + erreur.message); 
+                    alert("Erreur technique : " + erreur.message + "\n\n(Si vous êtes sur CodePen, testez sur GitHub !)"); 
                 }
             },
 
@@ -992,7 +984,6 @@
                 this.renderDashboard(); 
             },
 
-            // --- NOUVEAU : Chargement de la date et de l'heure dans le formulaire ---
             async showForm(id = null) {
                 document.getElementById('dashboard-view').classList.add('hidden'); 
                 document.getElementById('form-view').classList.remove('hidden');
@@ -1014,17 +1005,33 @@
                     if (btnNewFollowup) btnNewFollowup.style.display = 'block';
                     const v = this.visits.find(v => v.id === id); 
                     if (v) {
-                        ['id','name','origin','dob','age','phone','reason','history','allergies','bp','pulse','rr','temp','spo2','examGeneral','examHemo','examResp','examNeuro','examAbdo','examOther','prescription','fee'].forEach(k => { 
-                            const fieldId = k==='id'?'visit-id':(k==='fee'?'visit-fee':(document.getElementById(`patient-${k}`)?`patient-${k}`:(document.getElementById(`visit-${k}`)?`visit-${k}`:(document.getElementById(`vital-${k}`)?`vital-${k}`:(document.getElementById(`exam-${k.replace('exam','')}`.toLowerCase())?`exam-${k.replace('exam','')}`.toLowerCase():k)))));
-                            const el = document.getElementById(fieldId);
-                            if (el) el.value = v[k]||''; 
-                        }); 
+                        // Remplissage explicite et propre
+                        document.getElementById('visit-id').value = v.id || '';
+                        document.getElementById('patient-name').value = v.name || '';
+                        document.getElementById('patient-origin').value = v.origin || '';
+                        document.getElementById('patient-dob').value = v.dob || '';
+                        document.getElementById('patient-age').value = v.age || '';
+                        document.getElementById('patient-phone').value = v.phone || '';
+                        document.getElementById('visit-reason').value = v.reason || '';
+                        document.getElementById('medical-history').value = v.history || ''; // Correction appliquée ici
+                        document.getElementById('allergies').value = v.allergies || '';
+                        document.getElementById('vital-bp').value = v.bp || '';
+                        document.getElementById('vital-pulse').value = v.pulse || '';
+                        document.getElementById('vital-rr').value = v.rr || '';
+                        document.getElementById('vital-temp').value = v.temp || '';
+                        document.getElementById('vital-spo2').value = v.spo2 || '';
+                        document.getElementById('exam-general').value = v.examGeneral || '';
+                        document.getElementById('exam-hemo').value = v.examHemo || '';
+                        document.getElementById('exam-resp').value = v.examResp || '';
+                        document.getElementById('exam-neuro').value = v.examNeuro || '';
+                        document.getElementById('exam-abdo').value = v.examAbdo || '';
+                        document.getElementById('exam-other').value = v.examOther || '';
+                        document.getElementById('prescription').value = v.prescription || '';
+                        document.getElementById('visit-fee').value = v.fee || '';
                         
-                        // Séparation et remplissage de la Date et de l'Heure
                         let vDate = new Date(v.date);
                         if(isNaN(vDate.getTime())) vDate = new Date();
                         
-                        // Ajustement fuseau horaire local pour les inputs
                         const offset = vDate.getTimezoneOffset() * 60000;
                         const localISOTime = (new Date(vDate - offset)).toISOString().slice(0, -1);
                         
@@ -1050,7 +1057,6 @@
                     this.currentScans = (await localforage.getItem('scans_' + id)) || [];
                 } else { 
                     this.currentScans = []; 
-                    // Initialise les champs avec l'heure actuelle
                     const offset = now.getTimezoneOffset() * 60000;
                     const localISOTime = (new Date(now - offset)).toISOString().slice(0, -1);
                     document.getElementById('visit-date').value = localISOTime.substring(0, 10);
@@ -1125,7 +1131,6 @@
                                 
                                 if (parsedData.scans) {
                                     for (const key in parsedData.scans) {
-                                        // GESTION DU LOGO ET DE LA SIGNATURE LORS DE LA SYNC
                                         if (key === 'docpocket_custom_logo' || key === 'docpocket_custom_signature') {
                                             await localforage.setItem(key, parsedData.scans[key]);
                                             continue;
@@ -1196,7 +1201,6 @@
             },
             calculateApproximateDOB(input) { const v = input.value.replace(/\D/g, ''); if (v && !document.getElementById('patient-dob').value) document.getElementById('patient-dob').value = `01/01/${new Date().getFullYear() - parseInt(v, 10)}`; },
 
-            // --- NOUVEAU : Affichage de l'heure sur le PDF ---
             async generatePDF(id, buttonElement) {
                 const v = this.visits.find(x => x.id === id); if (!v) return;
                 
@@ -1261,7 +1265,12 @@
                 filteredVisits.forEach(v => {
                     const key = v.name.trim().toLowerCase();
                     if (!patientsMap[key]) {
-                        patientsMap[key] = { name: v.name.trim(), phone: v.phone || '', age: v.age || '', visits: [] };
+                        patientsMap[key] = {
+                            name: v.name.trim(),
+                            phone: v.phone || '',
+                            age: v.age || '',
+                            visits: []
+                        };
                     }
                     patientsMap[key].visits.push(v);
                 });
