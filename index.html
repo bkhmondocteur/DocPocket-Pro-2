@@ -210,13 +210,20 @@
 
                 <div class="backup-panel">
                     <div>
-                        <strong>🖼️ Personnalisation (Logo)</strong>
-                        <p>Ajoutez l'en-tête de votre cabinet sur les rapports.</p>
+                        <strong>🎨 Personnalisation (En-tête & Cachet)</strong>
+                        <p>Ajoutez le logo de votre cabinet et votre signature numérique pour les rapports PDF.</p>
                     </div>
-                    <div class="backup-actions">
-                        <button class="btn btn-outline" onclick="document.getElementById('logo-upload').click()">Importer un logo</button>
-                        <input type="file" id="logo-upload" accept="image/*" style="display:none" onchange="app.changeLogo(event)">
-                        <button class="btn btn-danger" onclick="app.removeLogo()" title="Remettre le logo par défaut">Effacer</button>
+                    <div style="display:flex; flex-direction:column; gap:10px; width:100%; max-width:350px;">
+                        <div class="backup-actions">
+                            <button class="btn btn-outline" style="flex:1;" onclick="document.getElementById('logo-upload').click()">🖼️ Modifier le Logo</button>
+                            <input type="file" id="logo-upload" accept="image/*" style="display:none" onchange="app.changeLogo(event)">
+                            <button class="btn btn-danger" style="flex:none; padding:0 15px;" onclick="app.removeLogo()" title="Effacer Logo">✖</button>
+                        </div>
+                        <div class="backup-actions">
+                            <button class="btn btn-outline" style="flex:1;" onclick="document.getElementById('sign-upload').click()">🖋️ Signature & Cachet</button>
+                            <input type="file" id="sign-upload" accept="image/*" style="display:none" onchange="app.changeSignature(event)">
+                            <button class="btn btn-danger" style="flex:none; padding:0 15px;" onclick="app.removeSignature()" title="Effacer Signature">✖</button>
+                        </div>
                     </div>
                 </div>
 
@@ -255,6 +262,14 @@
                 <form id="consultation-form" onsubmit="app.saveVisit(event)">
                     <input type="hidden" id="visit-id">
                     
+                    <section class="form-section">
+                        <h2>Informations de la consultation</h2>
+                        <div class="grid-2">
+                            <div class="form-group"><label>Date de l'acte</label><input type="date" id="visit-date" class="form-control" required></div>
+                            <div class="form-group"><label>Heure</label><input type="time" id="visit-time" class="form-control" required></div>
+                        </div>
+                    </section>
+
                     <section class="form-section">
                         <h2>Démographie</h2>
                         <div class="grid-2">
@@ -299,6 +314,7 @@
                         <input type="file" id="gallery-input" accept="image/*,application/pdf" style="display: none;" onchange="app.handleCameraInput(event)">
                         
                         <div id="scanner-preview-section" class="hidden" style="background: #f9f9f9; padding: 15px; border: 1px dashed var(--primary-color); border-radius: 8px; margin-bottom: 15px;">
+                            
                             <img id="scanner-preview" class="preview-img hidden">
                             <iframe id="scanner-preview-pdf" class="preview-iframe hidden"></iframe>
                             
@@ -388,7 +404,12 @@
             <div id="p-exam-other" class="print-exam-line"></div>
         </div>
         <div class="print-section"><h3>Traitement</h3><p id="p-prescription" class="print-value"></p></div>
-        <div style="text-align:right; margin-top:30px;"><p><strong>Signature :</strong></p><p id="print-signature-name" style="font-weight:bold;"></p></div>
+        
+        <div style="text-align:right; margin-top:30px; display:flex; flex-direction:column; align-items:flex-end;">
+            <p><strong>Signature et Cachet :</strong></p>
+            <img id="print-signature-img" src="" style="max-height: 120px; max-width: 250px; display: none; margin-top: 10px; margin-bottom: 5px;">
+            <p id="print-signature-name" style="font-weight:bold;"></p>
+        </div>
     </div>
 
     <div id="print-report-view">
@@ -631,7 +652,9 @@
                 document.getElementById('app-title-display').textContent = `DocPocket Pro`;
                 
                 localforage.config({ name: 'DocPocketPro', storeName: 'dossiers_scans' });
-                await this.loadLogo();
+                
+                // Chargement des images personnalisées (Logo et Signature)
+                await this.loadCustomImages();
 
                 if (window.isSecureContext && window.PublicKeyCredential) {
                     document.getElementById('btn-activate-bio').classList.remove('hidden');
@@ -653,14 +676,28 @@
                 document.getElementById('search-input').addEventListener('input', (e) => this.renderDashboard(e.target.value.toLowerCase()));
             },
 
-            async loadLogo() {
+            // --- GESTION DU LOGO ET DE LA SIGNATURE ---
+            async loadCustomImages() {
                 try {
+                    // Chargement du Logo
                     const logoBase64 = await localforage.getItem('docpocket_custom_logo');
                     const defaultLogo = "icon-512.png?v=3";
                     const imgSrc = logoBase64 ? logoBase64 : defaultLogo;
                     document.querySelectorAll('.print-logo').forEach(img => img.src = imgSrc);
                     const headerLogo = document.querySelector('.header-logo');
                     if (headerLogo) headerLogo.src = imgSrc;
+
+                    // Chargement de la Signature
+                    const signBase64 = await localforage.getItem('docpocket_custom_signature');
+                    document.querySelectorAll('#print-signature-img').forEach(img => {
+                        if (signBase64) {
+                            img.src = signBase64;
+                            img.style.display = 'block';
+                        } else {
+                            img.src = '';
+                            img.style.display = 'none';
+                        }
+                    });
                 } catch(e) {}
             },
 
@@ -670,8 +707,8 @@
                     const reader = new FileReader();
                     reader.onload = async (e) => {
                         await localforage.setItem('docpocket_custom_logo', e.target.result);
-                        await this.loadLogo();
-                        alert("✅ Logo mis à jour pour tous les rapports.");
+                        await this.loadCustomImages();
+                        alert("✅ Logo mis à jour !");
                     };
                     reader.readAsDataURL(file);
                 }
@@ -681,7 +718,28 @@
             async removeLogo() {
                 if(confirm("Remettre le logo par défaut ?")) {
                     await localforage.removeItem('docpocket_custom_logo');
-                    await this.loadLogo();
+                    await this.loadCustomImages();
+                }
+            },
+
+            changeSignature(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = async (e) => {
+                        await localforage.setItem('docpocket_custom_signature', e.target.result);
+                        await this.loadCustomImages();
+                        alert("✅ Signature numérisée et enregistrée !");
+                    };
+                    reader.readAsDataURL(file);
+                }
+                event.target.value = '';
+            },
+
+            async removeSignature() {
+                if(confirm("Effacer la signature / cachet enregistré ?")) {
+                    await localforage.removeItem('docpocket_custom_signature');
+                    await this.loadCustomImages();
                 }
             },
 
@@ -865,6 +923,7 @@
                 document.getElementById('modal-scan-pdf').src = "";
             },
 
+            // --- NOUVEAU : Enregistrement de la DATE et de l'HEURE ---
             async saveVisit(e) {
                 if (e) e.preventDefault(); 
                 
@@ -878,8 +937,16 @@
 
                     const isNew = !document.getElementById('visit-id').value;
                     const vId = isNew ? Date.now().toString() : document.getElementById('visit-id').value;
-                    const ancienneVisite = this.visits.find(x => String(x.id) === String(vId));
-                    const dateVisite = isNew ? new Date().toISOString() : (ancienneVisite ? ancienneVisite.date : new Date().toISOString());
+                    
+                    // Récupération de la date et l'heure depuis les champs
+                    const dateInput = document.getElementById('visit-date').value;
+                    const timeInput = document.getElementById('visit-time').value || "00:00";
+                    let dateVisite;
+                    try {
+                        dateVisite = new Date(`${dateInput}T${timeInput}`).toISOString();
+                    } catch(err) {
+                        dateVisite = new Date().toISOString();
+                    }
 
                     const v = {
                         id: String(vId), 
@@ -906,7 +973,7 @@
 
                 } catch (erreur) { 
                     console.error("Erreur de sauvegarde :", erreur); 
-                    alert("Erreur technique : " + erreur.message + "\n\n(Si vous êtes sur CodePen, testez sur GitHub !)"); 
+                    alert("Erreur technique : " + erreur.message); 
                 }
             },
 
@@ -925,6 +992,7 @@
                 this.renderDashboard(); 
             },
 
+            // --- NOUVEAU : Chargement de la date et de l'heure dans le formulaire ---
             async showForm(id = null) {
                 document.getElementById('dashboard-view').classList.add('hidden'); 
                 document.getElementById('form-view').classList.remove('hidden');
@@ -940,6 +1008,8 @@
                 if (btnNewFollowup) btnNewFollowup.style.display = 'none';
                 if (histList) histList.innerHTML = '';
                 
+                const now = new Date();
+
                 if (id) { 
                     if (btnNewFollowup) btnNewFollowup.style.display = 'block';
                     const v = this.visits.find(v => v.id === id); 
@@ -950,21 +1020,42 @@
                             if (el) el.value = v[k]||''; 
                         }); 
                         
+                        // Séparation et remplissage de la Date et de l'Heure
+                        let vDate = new Date(v.date);
+                        if(isNaN(vDate.getTime())) vDate = new Date();
+                        
+                        // Ajustement fuseau horaire local pour les inputs
+                        const offset = vDate.getTimezoneOffset() * 60000;
+                        const localISOTime = (new Date(vDate - offset)).toISOString().slice(0, -1);
+                        
+                        document.getElementById('visit-date').value = localISOTime.substring(0, 10);
+                        document.getElementById('visit-time').value = localISOTime.substring(11, 16);
+                        
                         const patientName = v.name.toLowerCase().trim();
                         const pastVisits = this.visits.filter(x => x.name.toLowerCase().trim() === patientName && x.id !== id);
                         if (pastVisits.length > 0 && histSection && histList) {
                             histSection.style.display = 'block';
                             pastVisits.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(pv => {
+                                const pvDate = new Date(pv.date);
+                                const dateStr = pvDate.toLocaleDateString('fr-FR');
+                                const timeStr = pvDate.toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'});
                                 histList.innerHTML += `
                                 <div style="background: #f4f7f6; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;" onclick="app.showForm('${pv.id}')">
-                                    <div><strong style="color:var(--primary-color);">${new Date(pv.date).toLocaleDateString('fr-FR')}</strong> - ${pv.reason}</div>
+                                    <div><strong style="color:var(--primary-color);">${dateStr} à ${timeStr}</strong> - ${pv.reason}</div>
                                     <button type="button" class="btn btn-outline" style="padding: 4px 8px; font-size: 0.8rem;">Ouvrir</button>
                                 </div>`;
                             });
                         }
                     }
                     this.currentScans = (await localforage.getItem('scans_' + id)) || [];
-                } else { this.currentScans = []; }
+                } else { 
+                    this.currentScans = []; 
+                    // Initialise les champs avec l'heure actuelle
+                    const offset = now.getTimezoneOffset() * 60000;
+                    const localISOTime = (new Date(now - offset)).toISOString().slice(0, -1);
+                    document.getElementById('visit-date').value = localISOTime.substring(0, 10);
+                    document.getElementById('visit-time').value = localISOTime.substring(11, 16);
+                }
                 this.renderScansList();
                 window.scrollTo({ top: 0, behavior: 'smooth' });
             },
@@ -1034,7 +1125,11 @@
                                 
                                 if (parsedData.scans) {
                                     for (const key in parsedData.scans) {
-                                        if (key === 'docpocket_custom_logo') continue;
+                                        // GESTION DU LOGO ET DE LA SIGNATURE LORS DE LA SYNC
+                                        if (key === 'docpocket_custom_logo' || key === 'docpocket_custom_signature') {
+                                            await localforage.setItem(key, parsedData.scans[key]);
+                                            continue;
+                                        }
                                         const importedScansArray = parsedData.scans[key] || [];
                                         const currentScansArray = (await localforage.getItem(key)) || [];
                                         const combinedScans = [...currentScansArray, ...importedScansArray];
@@ -1101,11 +1196,19 @@
             },
             calculateApproximateDOB(input) { const v = input.value.replace(/\D/g, ''); if (v && !document.getElementById('patient-dob').value) document.getElementById('patient-dob').value = `01/01/${new Date().getFullYear() - parseInt(v, 10)}`; },
 
+            // --- NOUVEAU : Affichage de l'heure sur le PDF ---
             async generatePDF(id, buttonElement) {
                 const v = this.visits.find(x => x.id === id); if (!v) return;
                 
-                document.getElementById('print-date-display').textContent = new Date(v.date).toLocaleDateString('fr-FR');
+                let vDate = new Date(v.date);
+                if(isNaN(vDate.getTime())) vDate = new Date();
+                
+                const dateStr = vDate.toLocaleDateString('fr-FR');
+                const timeStr = vDate.toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'});
+                
+                document.getElementById('print-date-display').textContent = `Le ${dateStr} à ${timeStr}`;
                 document.getElementById('print-signature-name').textContent = this.doctorName;
+                
                 ['name','age','phone','reason','history','allergies','bp','pulse','temp','spo2','prescription'].forEach(k => { if(document.getElementById(`p-${k}`)) document.getElementById(`p-${k}`).textContent = v[k]||'-'; });
                 
                 const examLabels = { gen: 'Plan Général', hemo: 'Hémodynamique', resp: 'Respiratoire', neuro: 'Neurologique', abdo: 'Abdominal', other: 'Reste de l\'examen' };
@@ -1126,8 +1229,8 @@
                 const element = document.getElementById('print-view');
                 element.style.display = 'block';
 
-                const dateConsult = new Date(v.date).toLocaleDateString('fr-FR').replace(/\//g, '-');
-                const nomFichier = `Rapport_Medical_${v.name.replace(/\s+/g, '_')}_${dateConsult}.pdf`;
+                const safeDate = dateStr.replace(/\//g, '-');
+                const nomFichier = `Rapport_Medical_${v.name.replace(/\s+/g, '_')}_${safeDate}.pdf`;
 
                 let btnText = "📄 PDF"; if (buttonElement) { btnText = buttonElement.innerText; buttonElement.innerText = "⏳..."; }
 
@@ -1158,12 +1261,7 @@
                 filteredVisits.forEach(v => {
                     const key = v.name.trim().toLowerCase();
                     if (!patientsMap[key]) {
-                        patientsMap[key] = {
-                            name: v.name.trim(),
-                            phone: v.phone || '',
-                            age: v.age || '',
-                            visits: []
-                        };
+                        patientsMap[key] = { name: v.name.trim(), phone: v.phone || '', age: v.age || '', visits: [] };
                     }
                     patientsMap[key].visits.push(v);
                 });
@@ -1180,10 +1278,14 @@
                     let visitsHtml = '';
                     patient.visits.forEach(v => {
                         const fee = parseFloat(v.fee) || 0;
+                        const vDate = new Date(v.date);
+                        const dateString = vDate.toLocaleDateString('fr-FR', {weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'});
+                        const timeString = vDate.toLocaleTimeString('fr-FR', {hour: '2-digit', minute: '2-digit'});
+
                         visitsHtml += `
                             <div class="consultation-item">
                                 <div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom: 1px solid #eee; padding-bottom:5px;">
-                                    <strong style="color:var(--primary-color); font-size: 0.95rem;">${new Date(v.date).toLocaleDateString('fr-FR', {weekday: 'short', day: '2-digit', month: 'short', year: 'numeric'})}</strong>
+                                    <strong style="color:var(--primary-color); font-size: 0.95rem;">${dateString} à ${timeString}</strong>
                                     <span style="font-size:0.85rem; font-weight:bold; color: var(--success-color);">${fee>0?fee.toFixed(3)+' DT':'-'}</span>
                                 </div>
                                 <p style="font-size:0.9rem; margin-bottom:10px; color:#444;"><strong>Motif :</strong> ${v.reason}</p>
@@ -1222,7 +1324,6 @@
             }
         };
 
-        // Remplacement de l'initialisation de test par l'initialisation de l'authentification (Sécurisé)
         window.addEventListener('DOMContentLoaded', () => auth.init());
     </script>
 </body>
