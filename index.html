@@ -42,7 +42,7 @@
         }
         #toast-notification.fade-out { opacity: 0; pointer-events: none; }
 
-        /* AUTH UI */
+        /* AUTH UI (Sécurisé) */
         #auth-view { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh; background: var(--primary-color); display: flex; justify-content: center; align-items: center; z-index: 9999; padding: 1rem; }
         .auth-card { background: white; padding: 2rem; border-radius: 12px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 100%; max-width: 400px; text-align: center; }
         .auth-logo { width: 70px; height: 70px; object-fit: contain; margin-bottom: 1rem; border-radius: var(--radius); }
@@ -143,7 +143,43 @@
 
     <div id="toast-notification" class="hidden">👋 Bonjour <span id="toast-doc-name"></span></div>
 
-    <div id="app-ui">
+    <div id="auth-view" class="hidden">
+        <div class="auth-card">
+            <img class="auth-logo" src="icon-512.png?v=3" alt="Logo Cabinet" onerror="this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' viewBox=\'0 0 24 24\' fill=\'%23003399\'><path d=\'M19 10.5h-5.5V5h-3v5.5H5v3h5.5V19h3v-5.5H19v-3z\'/></svg>'">
+            
+            <div id="auth-license-section" class="hidden">
+                <h2>Activation DocPocket</h2>
+                <p style="font-size: 0.85rem; margin-bottom: 1rem; color: var(--text-muted);">Veuillez entrer votre clé de licence nominative.</p>
+                <input type="text" id="license-key" class="form-control" placeholder="DOCPRO-xxxxxx-2026" style="width:100%; margin-bottom: 1rem; text-align: center;">
+                <button class="btn" style="width:100%; justify-content: center;" onclick="auth.checkLicense()">Activer ma licence</button>
+            </div>
+
+            <div id="auth-pin-section" class="hidden">
+                <h2 id="pin-title">Entrez votre Code PIN</h2>
+                <div class="pin-display" id="pin-dots"></div>
+                <div class="keypad">
+                    <button class="key-btn" onclick="auth.pressPin(1)">1</button>
+                    <button class="key-btn" onclick="auth.pressPin(2)">2</button>
+                    <button class="key-btn" onclick="auth.pressPin(3)">3</button>
+                    <button class="key-btn" onclick="auth.pressPin(4)">4</button>
+                    <button class="key-btn" onclick="auth.pressPin(5)">5</button>
+                    <button class="key-btn" onclick="auth.pressPin(6)">6</button>
+                    <button class="key-btn" onclick="auth.pressPin(7)">7</button>
+                    <button class="key-btn" onclick="auth.pressPin(8)">8</button>
+                    <button class="key-btn" onclick="auth.pressPin(9)">9</button>
+                    <button class="key-btn" onclick="auth.clearPin()">C</button>
+                    <button class="key-btn" onclick="auth.pressPin(0)">0</button>
+                    <button class="key-btn" onclick="auth.submitPin()">OK</button>
+                </div>
+                <button id="btn-biometric" class="bio-btn hidden" onclick="auth.useBiometrics()">
+                    🔒 Empreinte / Face ID
+                </button>
+                <button id="btn-cancel-change" class="btn btn-outline hidden" style="width:100%; margin-top:10px;" onclick="auth.cancelChangePin()">Annuler</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="app-ui" class="hidden">
         <header class="app-header">
             <div class="logo-container">
                 <img class="header-logo" src="icon-512.png?v=3" alt="Logo" onerror="this.style.display='none'">
@@ -152,6 +188,7 @@
             <div class="header-actions">
                 <span id="date-display"></span>
                 <button class="btn btn-refresh" onclick="app.purgeCacheAndReload()" title="Rafraîchir">🔄</button>
+                <button class="btn btn-refresh" onclick="auth.lockApp()" title="Verrouiller" style="border-color: #ff9999; color: #ff9999;">🔒</button>
             </div>
         </header>
 
@@ -203,6 +240,8 @@
                         <button class="btn btn-outline" onclick="app.exportBackup()">📥 Exporter</button>
                         <input type="file" id="import-file" style="display:none" accept=".json" onchange="app.importBackup(event)">
                         <button class="btn btn-outline" onclick="document.getElementById('import-file').click()">📤 Restaurer / Sync</button>
+                        <button class="btn btn-outline" style="border-color: #f57c00; color: #f57c00;" onclick="auth.startChangePin()">🔑 Changer PIN</button>
+                        <button id="btn-activate-bio" class="btn btn-outline hidden" style="border-color: #4CAF50; color: #4CAF50; flex-basis: 100%;" onclick="auth.registerBiometrics()">🛡️ Activer Empreinte</button>
                     </div>
                 </div>
             </main>
@@ -260,7 +299,6 @@
                         <input type="file" id="gallery-input" accept="image/*,application/pdf" style="display: none;" onchange="app.handleCameraInput(event)">
                         
                         <div id="scanner-preview-section" class="hidden" style="background: #f9f9f9; padding: 15px; border: 1px dashed var(--primary-color); border-radius: 8px; margin-bottom: 15px;">
-                            
                             <img id="scanner-preview" class="preview-img hidden">
                             <iframe id="scanner-preview-pdf" class="preview-iframe hidden"></iframe>
                             
@@ -367,23 +405,237 @@
     </div>
 
     <script>
+        const cryptoUtils = {
+            async deriveKey(pin, salt) {
+                const pinBuffer = new TextEncoder().encode(pin);
+                const baseKey = await crypto.subtle.importKey("raw", pinBuffer, { name: "PBKDF2" }, false, ["deriveKey"]);
+                return crypto.subtle.deriveKey({ name: "PBKDF2", salt: salt, iterations: 100000, hash: "SHA-256" }, baseKey, { name: "AES-GCM", length: 256 }, false, ["encrypt", "decrypt"]);
+            },
+            async encrypt(text, pin) {
+                const dataBuffer = new TextEncoder().encode(text);
+                const salt = crypto.getRandomValues(new Uint8Array(16)); const iv = crypto.getRandomValues(new Uint8Array(12));
+                const key = await this.deriveKey(pin, salt);
+                const ciphertext = await crypto.subtle.encrypt({ name: "AES-GCM", iv: iv }, key, dataBuffer);
+                const combined = new Uint8Array(salt.length + iv.length + ciphertext.byteLength);
+                combined.set(salt, 0); combined.set(iv, salt.length); combined.set(new Uint8Array(ciphertext), salt.length + iv.length);
+                let bin = ''; combined.forEach(b => bin += String.fromCharCode(b)); return btoa(bin);
+            },
+            async decrypt(combinedBase64, pin) {
+                const binStr = atob(combinedBase64); const combined = new Uint8Array(binStr.length);
+                for (let i = 0; i < binStr.length; i++) combined[i] = binStr.charCodeAt(i);
+                const salt = combined.slice(0, 16); const iv = combined.slice(16, 28); const ciphertext = combined.slice(28);
+                const key = await this.deriveKey(pin, salt);
+                const decryptedBuffer = await crypto.subtle.decrypt({ name: "AES-GCM", iv: iv }, key, ciphertext);
+                return new TextDecoder().decode(decryptedBuffer);
+            }
+        };
+
+        const auth = {
+            currentPinInput: "", mode: "login", tempNewPin: "",
+
+            init() {
+                const docName = localStorage.getItem('docpocket_doc_name');
+                const isPinConfigured = localStorage.getItem('docpocket_pin_configured');
+
+                document.getElementById('auth-view').classList.remove('hidden');
+                document.getElementById('app-ui').classList.add('hidden');
+                document.getElementById('btn-cancel-change').classList.add('hidden');
+
+                if (!docName) {
+                    this.mode = 'license';
+                    document.getElementById('auth-license-section').classList.remove('hidden');
+                    document.getElementById('auth-pin-section').classList.add('hidden');
+                } else if (!isPinConfigured) {
+                    this.mode = 'setup';
+                    document.getElementById('auth-pin-section').classList.remove('hidden');
+                    document.getElementById('auth-license-section').classList.add('hidden');
+                    document.getElementById('pin-title').innerText = "Créez un Code PIN (4 chiffres)";
+                } else {
+                    this.mode = 'login';
+                    document.getElementById('auth-pin-section').classList.remove('hidden');
+                    document.getElementById('auth-license-section').classList.add('hidden');
+                    document.getElementById('pin-title').innerText = "Entrez votre Code PIN";
+                    
+                    if (window.isSecureContext && window.PublicKeyCredential) {
+                        document.getElementById('btn-biometric').classList.remove('hidden');
+                    }
+                }
+            },
+
+            checkLicense() {
+                const key = document.getElementById('license-key').value.trim(); const parts = key.split('-');
+                if (parts.length === 3 && parts[0] === 'DOCPRO' && parts[2] === '2026') {
+                    try {
+                        localStorage.setItem('docpocket_doc_name', "Dr " + atob(parts[1]));
+                        this.init(); 
+                    } catch(e) { alert("Clé de licence incorrecte."); }
+                } else { alert("Format de licence invalide."); }
+            },
+
+            pressPin(num) { if (this.currentPinInput.length < 4) { this.currentPinInput += num; this.updatePinDisplay(); } },
+            clearPin() { this.currentPinInput = ""; this.updatePinDisplay(); },
+            updatePinDisplay() { document.getElementById('pin-dots').innerText = "*".repeat(this.currentPinInput.length); },
+
+            startChangePin() {
+                this.mode = 'change_pin_old';
+                document.getElementById('app-ui').classList.add('hidden');
+                document.getElementById('auth-view').classList.remove('hidden');
+                document.getElementById('auth-pin-section').classList.remove('hidden');
+                document.getElementById('btn-biometric').classList.add('hidden');
+                document.getElementById('btn-cancel-change').classList.remove('hidden');
+                document.getElementById('pin-title').innerText = "Saisissez l'ANCIEN code PIN";
+                this.clearPin();
+            },
+
+            cancelChangePin() {
+                this.clearPin();
+                document.getElementById('btn-cancel-change').classList.add('hidden');
+                this.unlockApp();
+            },
+
+            async submitPin() {
+                if (this.currentPinInput.length !== 4) return alert("Le code doit faire 4 chiffres.");
+
+                if (this.mode === 'setup') {
+                    try {
+                        const encryptedEmpty = await cryptoUtils.encrypt("[]", this.currentPinInput);
+                        localStorage.setItem(app.STORAGE_KEY, encryptedEmpty);
+                        localStorage.setItem('docpocket_pin_configured', 'true');
+                        app.currentPin = this.currentPinInput;
+                        this.unlockApp();
+                    } catch(e) { alert("Erreur d'initialisation sécurisée."); }
+                } else if (this.mode === 'login') {
+                    try {
+                        const encryptedData = localStorage.getItem(app.STORAGE_KEY);
+                        if (encryptedData) {
+                            const decryptedText = await cryptoUtils.decrypt(encryptedData, this.currentPinInput);
+                            app.visits = JSON.parse(decryptedText);
+                        } else { app.visits = []; }
+                        app.currentPin = this.currentPinInput;
+                        this.unlockApp();
+                    } catch (error) {
+                        alert("Code PIN incorrect."); this.clearPin();
+                    }
+                } else if (this.mode === 'change_pin_old') {
+                    if (this.currentPinInput === app.currentPin) {
+                        this.mode = 'change_pin_new';
+                        document.getElementById('pin-title').innerText = "Saisissez le NOUVEAU PIN";
+                        this.clearPin();
+                    } else {
+                        alert("Ancien code PIN incorrect."); this.clearPin();
+                    }
+                } else if (this.mode === 'change_pin_new') {
+                    this.tempNewPin = this.currentPinInput;
+                    this.mode = 'change_pin_confirm';
+                    document.getElementById('pin-title').innerText = "Confirmez le NOUVEAU PIN";
+                    this.clearPin();
+                } else if (this.mode === 'change_pin_confirm') {
+                    if (this.currentPinInput === this.tempNewPin) {
+                        app.currentPin = this.tempNewPin;
+                        await app.saveData(); 
+                        alert("✅ Code PIN modifié avec succès !");
+                        document.getElementById('btn-cancel-change').classList.add('hidden');
+                        this.unlockApp();
+                    } else {
+                        alert("Les codes ne correspondent pas. Recommencez.");
+                        this.mode = 'change_pin_new';
+                        document.getElementById('pin-title').innerText = "Saisissez le NOUVEAU PIN";
+                        this.clearPin();
+                    }
+                }
+            },
+
+            async registerBiometrics() {
+                try {
+                    const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
+                    const userId = new Uint8Array(16); window.crypto.getRandomValues(userId);
+                    
+                    const credential = await navigator.credentials.create({
+                        publicKey: {
+                            challenge: challenge,
+                            rp: { name: "DocPocket Pro", id: window.location.hostname },
+                            user: { id: userId, name: "docteur", displayName: "Docteur" },
+                            pubKeyCredParams: [{type: "public-key", alg: -7}, {type: "public-key", alg: -257}],
+                            authenticatorSelection: { authenticatorAttachment: "platform", userVerification: "required" },
+                            timeout: 60000
+                        }
+                    });
+
+                    if (credential) {
+                        const credIdArray = new Uint8Array(credential.rawId);
+                        const credIdBase64 = btoa(String.fromCharCode.apply(null, credIdArray));
+                        localStorage.setItem('docpocket_passkey_id', credIdBase64);
+                        localStorage.setItem('docpocket_bio_token', btoa(app.currentPin));
+                        alert("✅ Biométrie activée avec succès ! Vous pourrez utiliser votre empreinte à la prochaine connexion.");
+                    }
+                } catch (error) {
+                    console.error(error);
+                    alert("Erreur ou annulation. Votre appareil ne supporte peut-être pas les Passkeys locaux.");
+                }
+            },
+
+            async useBiometrics() {
+                const savedCredId = localStorage.getItem('docpocket_passkey_id');
+                if (!savedCredId) return alert("⚠️ Aucune empreinte configurée.");
+
+                try {
+                    const challenge = new Uint8Array(32); window.crypto.getRandomValues(challenge);
+                    const credIdArray = Uint8Array.from(atob(savedCredId), c => c.charCodeAt(0));
+
+                    const credential = await navigator.credentials.get({
+                        publicKey: {
+                            challenge: challenge,
+                            allowCredentials: [{ type: "public-key", id: credIdArray }],
+                            userVerification: "required",
+                            timeout: 60000
+                        }
+                    });
+
+                    if (credential) {
+                        const bioToken = localStorage.getItem('docpocket_bio_token');
+                        if (bioToken) {
+                            this.currentPinInput = atob(bioToken);
+                            await this.submitPin();
+                        } else {
+                            alert("Erreur de liaison. Veuillez utiliser le code PIN.");
+                        }
+                    }
+                } catch (error) { console.log("Authentification biométrique annulée.", error); }
+            },
+
+            unlockApp() {
+                document.getElementById('auth-view').classList.add('hidden');
+                document.getElementById('app-ui').classList.remove('hidden');
+                app.init(); 
+                
+                const toast = document.getElementById('toast-notification');
+                document.getElementById('toast-doc-name').textContent = app.doctorName || localStorage.getItem('docpocket_doc_name');
+                toast.classList.remove('hidden');
+                setTimeout(() => { toast.classList.add('fade-out'); }, 2500);
+                setTimeout(() => { toast.classList.add('hidden'); toast.classList.remove('fade-out'); }, 3000);
+            },
+
+            lockApp() { 
+                app.currentPin = ""; app.visits = []; app.currentScans = [];
+                document.getElementById('app-ui').classList.add('hidden'); 
+                this.init(); 
+                this.clearPin(); 
+            }
+        };
+
         const app = {
-            visits: [], currentScans: [], tempScanBase64: "", tempScanType: "", STORAGE_KEY: 'docpocket_visits_data_raw', doctorName: '', deferredPrompt: null,
+            visits: [], currentScans: [], tempScanBase64: "", tempScanType: "", STORAGE_KEY: 'docpocket_visits_data', doctorName: '', currentPin: '', deferredPrompt: null,
 
             async init() {
-                if (!localStorage.getItem('docpocket_doc_name')) {
-                    localStorage.setItem('docpocket_doc_name', 'Dr Hamed BEN KHALIFA & Mme Ibtissem GHRAIEB');
-                }
-                this.doctorName = localStorage.getItem('docpocket_doc_name');
+                this.doctorName = localStorage.getItem('docpocket_doc_name') || 'Dr';
                 document.getElementById('app-title-display').textContent = `DocPocket Pro`;
                 
                 localforage.config({ name: 'DocPocketPro', storeName: 'dossiers_scans' });
                 await this.loadLogo();
 
-                try {
-                    const rawData = localStorage.getItem(this.STORAGE_KEY);
-                    if (rawData) this.visits = JSON.parse(rawData);
-                } catch(e) { this.visits = []; }
+                if (window.isSecureContext && window.PublicKeyCredential) {
+                    document.getElementById('btn-activate-bio').classList.remove('hidden');
+                }
 
                 if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
                 
@@ -401,58 +653,6 @@
                 document.getElementById('search-input').addEventListener('input', (e) => this.renderDashboard(e.target.value.toLowerCase()));
             },
 
-            // --- NAVIGATION (LES FONCTIONS MANQUANTES SONT ICI) ---
-            showDashboard() { 
-                document.getElementById('form-view').classList.add('hidden'); 
-                document.getElementById('dashboard-view').classList.remove('hidden'); 
-                this.renderDashboard(); 
-            },
-
-            async showForm(id = null) {
-                document.getElementById('dashboard-view').classList.add('hidden'); 
-                document.getElementById('form-view').classList.remove('hidden');
-                document.getElementById('consultation-form').reset(); 
-                document.getElementById('visit-id').value = '';
-                this.cancelScan();
-                
-                const histSection = document.getElementById('patient-history-section');
-                const histList = document.getElementById('patient-history-list');
-                const btnNewFollowup = document.getElementById('btn-new-followup');
-                
-                if (histSection) histSection.style.display = 'none';
-                if (btnNewFollowup) btnNewFollowup.style.display = 'none';
-                if (histList) histList.innerHTML = '';
-                
-                if (id) { 
-                    if (btnNewFollowup) btnNewFollowup.style.display = 'block';
-                    const v = this.visits.find(v => v.id === id); 
-                    if (v) {
-                        ['id','name','origin','dob','age','phone','reason','history','allergies','bp','pulse','rr','temp','spo2','examGeneral','examHemo','examResp','examNeuro','examAbdo','examOther','prescription','fee'].forEach(k => { 
-                            const fieldId = k==='id'?'visit-id':(k==='fee'?'visit-fee':(document.getElementById(`patient-${k}`)?`patient-${k}`:(document.getElementById(`visit-${k}`)?`visit-${k}`:(document.getElementById(`vital-${k}`)?`vital-${k}`:(document.getElementById(`exam-${k.replace('exam','')}`.toLowerCase())?`exam-${k.replace('exam','')}`.toLowerCase():k)))));
-                            const el = document.getElementById(fieldId);
-                            if (el) el.value = v[k]||''; 
-                        }); 
-                        
-                        const patientName = v.name.toLowerCase().trim();
-                        const pastVisits = this.visits.filter(x => x.name.toLowerCase().trim() === patientName && x.id !== id);
-                        if (pastVisits.length > 0 && histSection && histList) {
-                            histSection.style.display = 'block';
-                            pastVisits.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(pv => {
-                                histList.innerHTML += `
-                                <div style="background: #f4f7f6; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;" onclick="app.showForm('${pv.id}')">
-                                    <div><strong style="color:var(--primary-color);">${new Date(pv.date).toLocaleDateString('fr-FR')}</strong> - ${pv.reason}</div>
-                                    <button type="button" class="btn btn-outline" style="padding: 4px 8px; font-size: 0.8rem;">Ouvrir</button>
-                                </div>`;
-                            });
-                        }
-                    }
-                    this.currentScans = (await localforage.getItem('scans_' + id)) || [];
-                } else { this.currentScans = []; }
-                this.renderScansList();
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            },
-
-            // --- GESTION DU LOGO ---
             async loadLogo() {
                 try {
                     const logoBase64 = await localforage.getItem('docpocket_custom_logo');
@@ -505,7 +705,10 @@
             },
 
             async saveData() {
-                localStorage.setItem(this.STORAGE_KEY, JSON.stringify(this.visits));
+                try {
+                    const encrypted = await cryptoUtils.encrypt(JSON.stringify(this.visits), this.currentPin);
+                    localStorage.setItem(this.STORAGE_KEY, encrypted);
+                } catch(e) { alert("Erreur lors du chiffrement des données."); }
             },
 
             toggleAccordion(id) {
@@ -662,7 +865,6 @@
                 document.getElementById('modal-scan-pdf').src = "";
             },
 
-            // --- CORRECTION DU BUG D'ENREGISTREMENT ---
             async saveVisit(e) {
                 if (e) e.preventDefault(); 
                 
@@ -672,7 +874,6 @@
                 }
 
                 try {
-                    // Sécurité : S'assure que la liste des visites est bien un tableau
                     if (!Array.isArray(this.visits)) this.visits = [];
 
                     const isNew = !document.getElementById('visit-id').value;
@@ -700,7 +901,6 @@
                     await localforage.setItem('scans_' + vId, this.currentScans);
                     await this.saveData(); 
                     
-                    // Retour propre au menu principal
                     this.showDashboard();
                     window.scrollTo({ top: 0, behavior: 'smooth' });
 
@@ -719,15 +919,65 @@
                 } 
             },
 
+            showDashboard() { 
+                document.getElementById('form-view').classList.add('hidden'); 
+                document.getElementById('dashboard-view').classList.remove('hidden'); 
+                this.renderDashboard(); 
+            },
+
+            async showForm(id = null) {
+                document.getElementById('dashboard-view').classList.add('hidden'); 
+                document.getElementById('form-view').classList.remove('hidden');
+                document.getElementById('consultation-form').reset(); 
+                document.getElementById('visit-id').value = '';
+                this.cancelScan();
+                
+                const histSection = document.getElementById('patient-history-section');
+                const histList = document.getElementById('patient-history-list');
+                const btnNewFollowup = document.getElementById('btn-new-followup');
+                
+                if (histSection) histSection.style.display = 'none';
+                if (btnNewFollowup) btnNewFollowup.style.display = 'none';
+                if (histList) histList.innerHTML = '';
+                
+                if (id) { 
+                    if (btnNewFollowup) btnNewFollowup.style.display = 'block';
+                    const v = this.visits.find(v => v.id === id); 
+                    if (v) {
+                        ['id','name','origin','dob','age','phone','reason','history','allergies','bp','pulse','rr','temp','spo2','examGeneral','examHemo','examResp','examNeuro','examAbdo','examOther','prescription','fee'].forEach(k => { 
+                            const fieldId = k==='id'?'visit-id':(k==='fee'?'visit-fee':(document.getElementById(`patient-${k}`)?`patient-${k}`:(document.getElementById(`visit-${k}`)?`visit-${k}`:(document.getElementById(`vital-${k}`)?`vital-${k}`:(document.getElementById(`exam-${k.replace('exam','')}`.toLowerCase())?`exam-${k.replace('exam','')}`.toLowerCase():k)))));
+                            const el = document.getElementById(fieldId);
+                            if (el) el.value = v[k]||''; 
+                        }); 
+                        
+                        const patientName = v.name.toLowerCase().trim();
+                        const pastVisits = this.visits.filter(x => x.name.toLowerCase().trim() === patientName && x.id !== id);
+                        if (pastVisits.length > 0 && histSection && histList) {
+                            histSection.style.display = 'block';
+                            pastVisits.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(pv => {
+                                histList.innerHTML += `
+                                <div style="background: #f4f7f6; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;" onclick="app.showForm('${pv.id}')">
+                                    <div><strong style="color:var(--primary-color);">${new Date(pv.date).toLocaleDateString('fr-FR')}</strong> - ${pv.reason}</div>
+                                    <button type="button" class="btn btn-outline" style="padding: 4px 8px; font-size: 0.8rem;">Ouvrir</button>
+                                </div>`;
+                            });
+                        }
+                    }
+                    this.currentScans = (await localforage.getItem('scans_' + id)) || [];
+                } else { this.currentScans = []; }
+                this.renderScansList();
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            },
+
             async exportBackup() {
                 try {
-                    const rawVisits = JSON.stringify(this.visits);
-                    if(this.visits.length === 0) return alert("Base de données vide.");
+                    const visitsEncryptedData = localStorage.getItem(this.STORAGE_KEY); 
+                    if(!visitsEncryptedData) return alert("Base de données vide. Aucune sauvegarde nécessaire.");
                     
                     const scansData = {};
                     await localforage.iterate((value, key) => { scansData[key] = value; });
 
-                    const backupGlobal = { visits: rawVisits, scans: scansData };
+                    const backupGlobal = { visits: visitsEncryptedData, scans: scansData };
                     const chaineJson = JSON.stringify(backupGlobal);
                     const blob = new Blob([chaineJson], { type: "application/json" });
                     
@@ -755,10 +1005,13 @@
                 reader.onload = async (ev) => {
                     try {
                         const importedData = ev.target.result;
-                        let parsedData = JSON.parse(importedData);
+                        let parsedData;
+                        
+                        try { parsedData = JSON.parse(importedData); } catch(err) { parsedData = null; }
 
                         if (parsedData && parsedData.visits) {
-                            const importedVisits = JSON.parse(parsedData.visits);
+                            const decryptedVisitsStr = await cryptoUtils.decrypt(parsedData.visits, this.currentPin); 
+                            const importedVisits = JSON.parse(decryptedVisitsStr);
 
                             if (confirm("🔄 Lancer la synchronisation intelligente ?\nLes nouvelles consultations seront ajoutées, les plus récentes seront conservées.")) { 
                                 
@@ -797,8 +1050,9 @@
                                 window.location.reload(); 
                             }
                         } else {
+                            await cryptoUtils.decrypt(importedData, this.currentPin); 
                             if (confirm("⚠️ Restaurer ces anciennes données ?")) { 
-                                localStorage.setItem(this.STORAGE_KEY, JSON.stringify(parsedData)); 
+                                localStorage.setItem(this.STORAGE_KEY, importedData); 
                                 window.location.reload(); 
                             }
                         }
@@ -968,7 +1222,8 @@
             }
         };
 
-        window.addEventListener('DOMContentLoaded', () => app.init());
+        // Remplacement de l'initialisation de test par l'initialisation de l'authentification (Sécurisé)
+        window.addEventListener('DOMContentLoaded', () => auth.init());
     </script>
 </body>
 </html>
