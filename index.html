@@ -68,6 +68,7 @@
         /* ACCORDÉON PATIENT */
         .patient-card { background: var(--card-bg); border-radius: var(--radius); box-shadow: var(--shadow); border-left: 5px solid var(--primary-color); overflow: hidden; margin-bottom: 15px; }
         .patient-card-header { padding: 15px; display: flex; justify-content: space-between; align-items: center; cursor: pointer; background: #fff; transition: background 0.2s; }
+        .patient-card-header:hover { background: #f0f4f8; }
         .patient-history-drawer { display: none; padding: 15px; background: #F4F7F6; border-top: 1px solid #E0E0E0; }
         .consultation-item { background: #FFFFFF; padding: 12px; border-radius: 6px; border: 1px solid #E0E0E0; margin-bottom: 10px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
 
@@ -216,7 +217,10 @@
                     
                     <section class="form-section">
                         <h2>Informations Temporelles</h2>
-                        <div class="grid-2"><div class="form-group"><label>Date de l'acte</label><input type="date" id="visit-date" class="form-control" required></div><div class="form-group"><label>Heure</label><input type="time" id="visit-time" class="form-control" required></div></div>
+                        <div class="grid-2">
+                            <div class="form-group"><label>Date de l'acte</label><input type="text" id="visit-date" class="form-control" placeholder="JJ/MM/AAAA" maxlength="10" inputmode="numeric" oninput="app.formatDateInput(this)" required></div>
+                            <div class="form-group"><label>Heure</label><input type="time" id="visit-time" class="form-control" required></div>
+                        </div>
                     </section>
 
                     <section class="form-section">
@@ -341,7 +345,7 @@
     </div>
 
     <script>
-        // DICTIONNAIRES DE DONNÉES (Allègement et sécurité)
+        // DICTIONNAIRES DE DONNÉES
         const FIELDS = {
             id: 'visit-id', name: 'patient-name', origin: 'patient-origin', docType: 'patient-doc-type', docNum: 'patient-doc-num',
             dob: 'patient-dob', age: 'patient-age', phone: 'patient-phone', reason: 'visit-reason', history: 'medical-history',
@@ -469,6 +473,31 @@
             },
             newVisitForSamePatient() { const name = document.getElementById('patient-name').value; if(name && confirm("Nouvelle consultation pour ce patient ?")) this.newVisitForPatient(name); },
 
+            // --- NOUVEAU: FONCTIONS DE FORMATAGE DATE (Saisie Libre) ---
+            formatDateInput(input) {
+                let v = input.value.replace(/\D/g, ''); 
+                if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2); 
+                if (v.length > 5) v = v.slice(0, 5) + '/' + v.slice(5, 9); 
+                input.value = v;
+            },
+            formatDOBAndCalculateAge(input) {
+                let v = input.value.replace(/\D/g, ''); 
+                if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2); 
+                if (v.length > 5) v = v.slice(0, 5) + '/' + v.slice(5, 9); 
+                input.value = v;
+                if (v.length === 10) { 
+                    const p = v.split('/'); 
+                    const age = Math.abs(new Date(Date.now() - new Date(p[2], p[1]-1, p[0]).getTime()).getUTCFullYear() - 1970); 
+                    document.getElementById('patient-age').value = age > 0 ? `${age} ans` : '< 1 an'; 
+                }
+            },
+            calculateApproximateDOB(input) { 
+                const v = input.value.replace(/\D/g, ''); 
+                if (v && !document.getElementById('patient-dob').value) {
+                    document.getElementById('patient-dob').value = `01/01/${new Date().getFullYear() - parseInt(v, 10)}`; 
+                }
+            },
+
             handleCameraInput(event) {
                 const file = event.target.files[0]; if (!file) return; const reader = new FileReader();
                 reader.onload = (e) => {
@@ -491,7 +520,8 @@
                 const list = document.getElementById('scans-list'); list.innerHTML = "";
                 if (this.currentScans.length === 0) return list.innerHTML = `<p style="text-align:center; color:#888; font-size: 0.9rem;">Aucun document lié.</p>`;
                 this.currentScans.forEach(s => {
-                    list.innerHTML += `<div class="scan-item"><div style="flex:1; cursor:pointer;" onclick="app.openScanViewer(${s.id})"><strong style="color: var(--secondary-color);">${(s.type === 'application/pdf') ? '📄' : '🖼️'} ${s.name}</strong><br><span style="font-size:0.8rem; color:#666;">Ajouté le ${s.date}</span></div><div style="display: flex; gap: 5px;"><button type="button" class="btn btn-outline" style="padding: 6px 12px; background: white;" onclick="app.editScan(${s.id})">✏️</button><button type="button" class="btn btn-danger" style="padding: 6px 12px;" onclick="app.deleteScan(${s.id})">🗑️</button></div></div>`;
+                    const icon = (s.type === 'application/pdf') ? "📄" : "🖼️";
+                    list.innerHTML += `<div class="scan-item"><div style="flex:1; cursor:pointer;" onclick="app.openScanViewer(${s.id})"><strong style="color: var(--secondary-color);">${icon} ${s.name}</strong><br><span style="font-size:0.8rem; color:#666;">Ajouté le ${s.date}</span></div><div style="display: flex; gap: 5px;"><button type="button" class="btn btn-outline" style="padding: 6px 12px; background: white;" onclick="app.editScan(${s.id})">✏️</button><button type="button" class="btn btn-danger" style="padding: 6px 12px;" onclick="app.deleteScan(${s.id})">🗑️</button></div></div>`;
                 });
             },
             openScanViewer(id) {
@@ -504,25 +534,6 @@
             },
             closeScanViewer() { document.getElementById('view-scan-modal').classList.add('hidden'); document.getElementById('modal-scan-img').src = ""; document.getElementById('modal-scan-pdf').src = ""; },
 
-            // --- FONCTIONS MATHÉMATIQUES (RÉINTÉGRÉES) ---
-            formatDOBAndCalculateAge(input) {
-                let v = input.value.replace(/\D/g, ''); 
-                if (v.length > 2) v = v.slice(0, 2) + '/' + v.slice(2); 
-                if (v.length > 5) v = v.slice(0, 5) + '/' + v.slice(5, 9); 
-                input.value = v;
-                if (v.length === 10) { 
-                    const p = v.split('/'); 
-                    const age = Math.abs(new Date(Date.now() - new Date(p[2], p[1]-1, p[0]).getTime()).getUTCFullYear() - 1970); 
-                    document.getElementById('patient-age').value = age > 0 ? `${age} ans` : '< 1 an'; 
-                }
-            },
-            calculateApproximateDOB(input) { 
-                const v = input.value.replace(/\D/g, ''); 
-                if (v && !document.getElementById('patient-dob').value) {
-                    document.getElementById('patient-dob').value = `01/01/${new Date().getFullYear() - parseInt(v, 10)}`; 
-                }
-            },
-
             // --- LOGIQUE BASE DE DONNÉES ---
             async saveVisit(e) {
                 if (e) e.preventDefault(); 
@@ -533,7 +544,12 @@
                     const vId = isNew ? Date.now().toString() : document.getElementById('visit-id').value;
                     
                     const dInput = document.getElementById('visit-date').value; const tInput = document.getElementById('visit-time').value || "00:00";
-                    let dateVisite; try { dateVisite = new Date(`${dInput}T${tInput}`).toISOString(); } catch(err) { dateVisite = new Date().toISOString(); }
+                    let dateVisite; 
+                    try { 
+                        const parts = dInput.split('/');
+                        if(parts.length === 3) dateVisite = new Date(`${parts[2]}-${parts[1]}-${parts[0]}T${tInput}:00`).toISOString();
+                        else dateVisite = new Date().toISOString();
+                    } catch(err) { dateVisite = new Date().toISOString(); }
 
                     const v = { id: String(vId), date: dateVisite, updatedAt: Date.now() };
                     for(let key in FIELDS) { if(key !== 'id') v[key] = document.getElementById(FIELDS[key]).value; }
@@ -564,8 +580,8 @@
                         for(let key in FIELDS) { const el = document.getElementById(FIELDS[key]); if(el) el.value = v[key] || ''; }
                         
                         let vDate = new Date(v.date); if(isNaN(vDate.getTime())) vDate = new Date();
-                        const offset = vDate.getTimezoneOffset() * 60000; const localISO = (new Date(vDate - offset)).toISOString().slice(0, -1);
-                        document.getElementById('visit-date').value = localISO.substring(0, 10); document.getElementById('visit-time').value = localISO.substring(11, 16);
+                        document.getElementById('visit-date').value = `${String(vDate.getDate()).padStart(2,'0')}/${String(vDate.getMonth()+1).padStart(2,'0')}/${vDate.getFullYear()}`;
+                        document.getElementById('visit-time').value = vDate.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
                         
                         const pName = v.name.toLowerCase().trim();
                         const pastVisits = this.visits.filter(x => x.name.toLowerCase().trim() === pName && x.id !== id);
@@ -580,8 +596,9 @@
                     this.currentScans = (await localforage.getItem('scans_' + id)) || [];
                 } else { 
                     this.currentScans = []; 
-                    const now = new Date(); const offset = now.getTimezoneOffset() * 60000; const localISO = (new Date(now - offset)).toISOString().slice(0, -1);
-                    document.getElementById('visit-date').value = localISO.substring(0, 10); document.getElementById('visit-time').value = localISO.substring(11, 16);
+                    const now = new Date();
+                    document.getElementById('visit-date').value = `${String(now.getDate()).padStart(2,'0')}/${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
+                    document.getElementById('visit-time').value = now.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'});
                 }
                 this.renderScansList(); window.scrollTo({ top: 0, behavior: 'smooth' });
             },
