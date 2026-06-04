@@ -385,8 +385,9 @@
         async function saveOrShareFile(filename, blob, mimeType) {
             if (window.showSaveFilePicker) {
                 try {
+                    // CORRECTION: force l'extension
                     const fileExtension = mimeType === 'application/pdf' ? ['.pdf'] : ['.json'];
-                    const handle = await window.showSaveFilePicker({ suggestedName: filename, types: [{ description: 'Document DocPocket', accept: { [mimeType]: fileExtension } }] });
+                    const handle = await window.showSaveFilePicker({ suggestedName: filename, types: [{ description: 'Fichier DocPocket', accept: { [mimeType]: fileExtension } }] });
                     const writable = await handle.createWritable(); await writable.write(blob); await writable.close(); return;
                 } catch (err) { if (err.name === 'AbortError') return; }
             }
@@ -656,7 +657,7 @@
                 }; reader.readAsText(file); e.target.value = ''; 
             },
 
-            // --- IMPRESSION & PDF ---
+            // --- IMPRESSION & PDF (Rapports corrigés) ---
             async generateMonthlyReport(event) {
                 const [y, m] = document.getElementById('report-month').value.split('-'); if(!y) return;
                 const filtered = this.visits.filter(v => new Date(v.date).getFullYear() == y && new Date(v.date).getMonth() == m - 1).sort((a, b) => new Date(a.date) - new Date(b.date));
@@ -667,26 +668,17 @@
                 filtered.forEach(v => { const f = parseFloat(v.fee) || 0; total += f; tbody.innerHTML += `<tr><td style="padding:5px; border-bottom:1px solid #eee;">${new Date(v.date).toLocaleDateString('fr-FR')}</td><td style="padding:5px; border-bottom:1px solid #eee;"><b>${v.name}</b></td><td style="text-align:right; padding:5px; border-bottom:1px solid #eee;"><b>${f>0?f.toFixed(3)+' DT':'-'}</b></td></tr>`; });
                 document.getElementById('report-total-sum').textContent = total.toFixed(3);
                 
-                const element = document.getElementById('print-report-view');
-                const mainUI = document.getElementById('app-ui');
-                mainUI.style.display = 'none'; 
+                const element = document.getElementById('print-report-view'); 
                 element.style.display = 'block';
-                window.scrollTo(0, 0); 
-                
                 let btnText = "Générer (PDF)"; if (event && event.target) { btnText = event.target.innerText; event.target.innerText = "⏳..."; }
                 
-                await new Promise(resolve => setTimeout(resolve, 300));
+                await new Promise(resolve => setTimeout(resolve, 200));
 
                 try {
                     const fn = `Journal_Honoraires_${m}-${y}.pdf`;
-                    const opt = { margin: 10, filename: fn, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true, scrollY: 0 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
-                    const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
+                    const pdfBlob = await html2pdf().set({ margin: 10, filename: fn, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true, scrollY: 0 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(element).output('blob');
                     await saveOrShareFile(fn, pdfBlob, 'application/pdf');
-                } finally { 
-                    element.style.display = 'none'; 
-                    mainUI.style.display = ''; 
-                    if (event && event.target) event.target.innerText = btnText; 
-                }
+                } finally { element.style.display = 'none'; if (event && event.target) event.target.innerText = btnText; }
             },
 
             async generatePDF(id, buttonElement) {
@@ -704,28 +696,21 @@
                     if(el) { if(v[k] && v[k].trim()!=='') { el.textContent = `${EXAM_LABELS[k]} : ${v[k]}`; el.style.display = 'block'; } else { el.textContent = ''; el.style.display = 'none'; } }
                 }
                 
-                const element = document.getElementById('print-view');
-                const mainUI = document.getElementById('app-ui');
-                mainUI.style.display = 'none';
+                const element = document.getElementById('print-view'); 
                 element.style.display = 'block';
-                window.scrollTo(0, 0); 
                 
-                await new Promise(resolve => setTimeout(resolve, 300));
+                await new Promise(resolve => setTimeout(resolve, 200));
 
                 const fn = `Rapport_Medical_${v.name.replace(/\s+/g, '_')}_${vDate.toLocaleDateString('fr-FR').replace(/\//g, '-')}.pdf`;
                 let btnText = "📄 PDF"; if (buttonElement) { btnText = buttonElement.innerText; buttonElement.innerText = "⏳..."; }
 
                 try {
-                    const opt = { margin: 10, filename: fn, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true, scrollY: 0 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
-                    const pdfBlob = await html2pdf().set(opt).from(element).output('blob');
+                    const pdfBlob = await html2pdf().set({ margin: 10, filename: fn, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true, scrollY: 0 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(element).output('blob');
                     await saveOrShareFile(fn, pdfBlob, 'application/pdf');
-                } finally { 
-                    element.style.display = 'none'; 
-                    mainUI.style.display = ''; 
-                    if (buttonElement) buttonElement.innerText = btnText; 
-                }
+                } finally { element.style.display = 'none'; if (buttonElement) buttonElement.innerText = btnText; }
             },
 
+            // --- SMART DASHBOARD ---
             renderDashboard(fStr = '') {
                 const list = document.getElementById('visits-list'); list.innerHTML = '';
                 const searchStr = fStr.trim().toLowerCase();
