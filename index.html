@@ -37,7 +37,7 @@
         .key-btn:active { background: #d0d0d0; }
         .bio-btn { background: transparent; border: 2px solid var(--primary-color); color: var(--primary-color); padding: 0.7rem; border-radius: var(--radius); width: 100%; font-size: 0.95rem; font-weight: bold; cursor: pointer; margin-top: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px; }
 
-        /* HEADER */
+        /* HEADER CENTRÉ */
         .app-header { background-color: var(--primary-color); color: white; padding: 0.8rem 1rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .header-left, .header-right { flex: 1; display: flex; align-items: center; }
         .header-right { justify-content: flex-end; gap: 0.5rem; }
@@ -105,24 +105,12 @@
             .app-header h1 { font-size: 1.5rem; }
         }
 
-        /* ==========================================================
-           STRUCTURE PRINT HORS-ÉCRAN (SÉCURITÉ ANTI-PAGE BLANCHE MOBILE)
-           ========================================================== */
-        #print-view, #print-report-view { 
-            position: absolute; 
-            left: -9999px; 
-            top: 0; 
-            display: block; 
-            width: 210mm; 
-            background: white; 
-            color: black; 
-            font-family: 'Bookman Old Style', serif; 
-            font-size: 12pt; 
-            padding: 20mm; 
-            box-sizing: border-box; 
-        }
-        
+        /* =========================================
+           STYLES PDF IMPRESSION (MATHÉMATIQUE 25-50-25)
+           ========================================= */
+        #print-view, #print-report-view { display: none; background: white; color: black; font-family: 'Bookman Old Style', serif; font-size: 13pt; padding: 10mm; width: 100%; max-width: 800px; margin: 0 auto; box-sizing: border-box;}
         .print-header { display: flex; flex-direction: row; justify-content: space-between; align-items: center; border-bottom: 2px solid black; padding-bottom: 15px; margin-bottom: 20px; width: 100%; box-sizing: border-box; }
+        
         .print-header-left { width: 25%; text-align: left; display: flex; align-items: center; justify-content: flex-start; }
         .print-header-center { width: 50%; text-align: center; }
         .print-header-right { width: 25%; text-align: right; display: flex; align-items: center; justify-content: flex-end; }
@@ -130,20 +118,14 @@
         .print-logo { max-width: 80px; max-height: 60px; object-fit: contain; margin-bottom: 5px; }
         .print-personal-logo, .print-partner-logo { max-width: 100%; max-height: 80px; object-fit: contain; }
         
-        .print-header h1 { font-size: 18pt; margin-bottom: 5px; color: black; text-transform: uppercase;} 
+        .print-header h1 { font-size: 18pt; margin-bottom: 5px; color: black;} 
         .print-section { display: block; width: 100%; margin-bottom: 15px; page-break-inside: avoid; }
-        .print-section h3 { color: black; border-bottom: 1px solid #ccc; padding-bottom: 2px; margin-bottom: 8px; font-size: 13pt; text-transform: uppercase; }
+        .print-section h3 { color: black; border-bottom: 1px solid #ccc; padding-bottom: 2px; margin-bottom: 8px; font-size: 14pt; text-transform: uppercase; }
         .print-row { display: flex; flex-wrap: wrap; margin-bottom: 5px; gap: 10px; }
         .print-col { flex: 1; min-width: 180px; }
         .print-label { font-weight: bold; margin-right: 5px; }
         .print-value { white-space: pre-wrap; }
         .print-exam-line { display: block; margin-bottom: 6px; white-space: pre-wrap; }
-        
-        /* Protection des sauts de page pour signatures et tableaux */
-        .avoid-break { page-break-inside: avoid !important; break-inside: avoid !important; }
-        .print-table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 15px; }
-        .print-table th { border-bottom: 2px solid black; padding: 8px; text-align: left; font-weight: bold; }
-        .print-table td { border-bottom: 1px solid #e0E0E0; padding: 8px; }
     </style>
 </head>
 <body>
@@ -211,11 +193,8 @@
                 </div>
 
                 <div class="backup-panel">
-                    <div><strong>📊 Bilan Mensuel Clinique (PDF)</strong></div>
-                    <div class="backup-actions">
-                        <input type="month" id="report-month" class="form-control" style="flex:1; padding: 0.5rem;">
-                        <button class="btn" onclick="app.generateMonthlyReport(event)" style="flex:1;">Générer le Journal PDF</button>
-                    </div>
+                    <div><strong>📊 Bilan Mensuel</strong></div>
+                    <div class="backup-actions"><input type="month" id="report-month" class="form-control" style="flex:1; padding: 0.5rem;"><button class="btn" onclick="app.generateMonthlyReport(event)" style="flex:1;">Générer (PDF)</button></div>
                 </div>
 
                 <div class="backup-panel">
@@ -322,6 +301,11 @@
         </div>
     </div>
 
+    <div id="view-scan-modal" class="modal hidden">
+        <div class="modal-header"><div><h3 id="modal-scan-title" style="margin: 0; font-size: 1.2rem; color: white;">Document</h3><span id="modal-scan-date" style="font-size: 0.85rem; opacity: 0.8;">Date</span></div><span class="close-modal" onclick="app.closeScanViewer()">&times;</span></div>
+        <img id="modal-scan-img" class="modal-content hidden" src="" onclick="app.closeScanViewer()"><iframe id="modal-scan-pdf" class="modal-content hidden" src=""></iframe>
+    </div>
+
     <div id="print-view">
         <div class="print-header">
             <div class="print-header-left"><img class="print-personal-logo" src="" alt="" style="display:none;"></div>
@@ -341,12 +325,11 @@
         </div>
         <div class="print-section">
             <h3>Constatations Physiques</h3>
-            <div id="p-exam-general" class="print-exam-line"></div><div id="p-exam-hemo" class="print-exam-line"></div><div id="p-exam-resp" class="print-exam-line"></div><div id="p-exam-neuro" class="print-exam-line"></div><div id="p-exam-abdo" class="print-exam-line"></div><div id="p-exam-other" class="print-exam-line"></div>
+            <div id="p-exam-gen" class="print-exam-line"></div><div id="p-exam-hemo" class="print-exam-line"></div><div id="p-exam-resp" class="print-exam-line"></div><div id="p-exam-neuro" class="print-exam-line"></div><div id="p-exam-abdo" class="print-exam-line"></div><div id="p-exam-other" class="print-exam-line"></div>
             <div id="p-exam-reco" class="print-exam-line" style="margin-top: 10px; font-weight: bold;"></div>
         </div>
         <div class="print-section"><h3>Plan Thérapeutique</h3><p id="p-prescription" class="print-value"></p></div>
-        
-        <div class="avoid-break" style="text-align:right; margin-top:30px; display:flex; flex-direction:column; align-items:flex-end;">
+        <div style="text-align:right; margin-top:30px; display:flex; flex-direction:column; align-items:flex-end;">
             <p><strong>Signature et Cachet :</strong></p><img id="print-signature-img" src="" style="max-height: 120px; max-width: 250px; display: none; margin-top: 10px; margin-bottom: 5px;"><p id="print-signature-name" style="font-weight:bold;"></p>
         </div>
     </div>
@@ -357,27 +340,16 @@
             <div class="print-header-center"><img class="print-logo" src="icon-512.png?v=3" alt="Logo"><h1>Journal des Honoraires</h1><p>Période : <span id="report-period-display"></span></p></div>
             <div class="print-header-right"><img class="print-partner-logo" src="" alt="" style="display:none;"></div>
         </div>
-        
-        <table class="print-table">
-            <thead>
-                <tr>
-                    <th style="width: 20%;">Date</th>
-                    <th style="width: 35%;">Patient</th>
-                    <th style="width: 25%;">Motif de consultation</th>
-                    <th style="width: 20%; text-align: right;">Montant (DT)</th>
-                </tr>
-            </thead>
-            <tbody id="report-table-body">
-                </tbody>
+        <table style="width:100%; border-collapse:collapse; margin-top:20px;">
+            <thead><tr style="border-bottom:2px solid black; text-align:left;"><th>Date</th><th>Patient</th><th style="text-align:right;">Montant</th></tr></thead>
+            <tbody id="report-table-body"></tbody>
         </table>
-
-        <div class="avoid-break">
-            <div style="margin-top:20px; text-align:right; font-size:14pt; font-weight:bold; border-top: 2px solid black; padding-top: 10px;">Total mensuel : <span id="report-total-sum"></span> DT</div>
-            <div style="text-align:right; margin-top:40px;"><p><strong>Clôturé par l'autorité médicale :</strong></p><p id="report-signature-name" style="font-weight:bold; margin-top: 10px;"></p></div>
-        </div>
+        <div style="margin-top:20px; text-align:right; font-size:14pt; font-weight:bold;">Total : <span id="report-total-sum"></span> DT</div>
+        <div style="text-align:right; margin-top:30px;"><p><strong>Clôturé par :</strong></p><p id="report-signature-name" style="font-weight:bold;"></p></div>
     </div>
 
     <script>
+        // DICTIONNAIRES DE DONNÉES
         const FIELDS = {
             id: 'visit-id', name: 'patient-name', origin: 'patient-origin', docType: 'patient-doc-type', docNum: 'patient-doc-num',
             dob: 'patient-dob', age: 'patient-age', phone: 'patient-phone', reason: 'visit-reason', history: 'medical-history',
@@ -410,8 +382,17 @@
             }
         };
 
-        // ENREGISTREMENT LOCAL UNIFIE (POUR FICHIERS JSON DE SYNCHRO)
-        function pureDownload(filename, blob) {
+        async function saveOrShareFile(filename, blob, mimeType) {
+            if (window.showSaveFilePicker) {
+                try {
+                    const handle = await window.showSaveFilePicker({ suggestedName: filename, types: [{ description: 'DocPocket File', accept: { [mimeType]: ['.json', '.pdf'] } }] });
+                    const writable = await handle.createWritable(); await writable.write(blob); await writable.close(); return;
+                } catch (err) { if (err.name === 'AbortError') return; }
+            }
+            const file = new File([blob], filename, { type: mimeType });
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                try { await navigator.share({ files: [file], title: filename }); return; } catch (err) {}
+            }
             const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.style.display = 'none'; a.href = url; a.download = filename;
             document.body.appendChild(a); a.click(); setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 100);
         }
@@ -434,7 +415,7 @@
             async submitPin() {
                 if (this.currentPinInput.length !== 4) return alert("4 chiffres requis.");
                 if (this.mode === 'setup') { try { const encryptedEmpty = await cryptoUtils.encrypt("[]", this.currentPinInput); localStorage.setItem(app.STORAGE_KEY, encryptedEmpty); localStorage.setItem('docpocket_pin_configured', 'true'); app.currentPin = this.currentPinInput; this.unlockApp(); } catch(e) { alert("Erreur."); } } 
-                else if (this.mode === 'login') { try { const data = localStorage.getItem(app.STORAGE_KEY); if (data) { const txt = await cryptoUtils.decrypt(data, this.currentPinInput); app.visits = JSON.parse(txt); } else app.visits = []; app.currentPin = this.currentPinInput; this.unlockApp(); } catch (error) { alert("PIN incorrect."); this.clearPin(); } } 
+                else if (this.mode === 'login') { try { const data = localStorage.getItem(app.STORAGE_KEY); if (data) { const txt = await cryptoUtils.decrypt(data, this.currentPinInput); app.visits = JSON.parse(txt); } else app.visits = []; app.currentPin = this.currentPinInput; this.unlockApp(); } catch (e) { alert("PIN incorrect."); this.clearPin(); } } 
                 else if (this.mode === 'change_pin_old') { if (this.currentPinInput === app.currentPin) { this.mode = 'change_pin_new'; document.getElementById('pin-title').innerText = "Saisissez le NOUVEAU PIN"; this.clearPin(); } else { alert("Ancien PIN incorrect."); this.clearPin(); } } 
                 else if (this.mode === 'change_pin_new') { this.tempNewPin = this.currentPinInput; this.mode = 'change_pin_confirm'; document.getElementById('pin-title').innerText = "Confirmez le NOUVEAU PIN"; this.clearPin(); } 
                 else if (this.mode === 'change_pin_confirm') { if (this.currentPinInput === this.tempNewPin) { app.currentPin = this.tempNewPin; await app.saveData(); alert("✅ PIN modifié !"); document.getElementById('btn-cancel-change').classList.add('hidden'); this.unlockApp(); } else { alert("Non correspondant."); this.mode = 'change_pin_new'; document.getElementById('pin-title').innerText = "Saisissez le NOUVEAU PIN"; this.clearPin(); } }
@@ -492,7 +473,7 @@
             toggleAccordion(id) { const el = document.getElementById(id); const ic = document.getElementById('icon-' + id); if (el.style.display === 'none') { el.style.display = 'block'; ic.innerText = '▲'; } else { el.style.display = 'none'; ic.innerText = '▼'; } },
             
             newVisitForPatient(patientName) {
-                const pVisits = this.visits.filter(v => v.name.trim().toLowerCase() === patientName.trim().toLowerCase()).sort((a,b) => (new Date(b.date).getTime()||0) - (new Date(a.date).getTime()||0));
+                const pVisits = this.visits.filter(v => v.name.trim().toLowerCase() === patientName.trim().toLowerCase()).sort((a,b) => new Date(b.date) - new Date(a.date));
                 this.showForm(); 
                 if(pVisits[0]) {
                     const fieldsToKeep = ['name', 'origin', 'docType', 'docNum', 'dob', 'age', 'phone', 'history', 'allergies', 'weight', 'height'];
@@ -562,6 +543,7 @@
             },
             closeScanViewer() { document.getElementById('view-scan-modal').classList.add('hidden'); document.getElementById('modal-scan-img').src = ""; document.getElementById('modal-scan-pdf').src = ""; },
 
+            // BOULIER ANTI-PLANTAGE INTÉGRÉ ICI
             async saveVisit(e) {
                 if (e) e.preventDefault(); 
                 if (!document.getElementById('patient-name').value.trim() || !document.getElementById('visit-reason').value.trim()) return alert("⚠️ Nom et motif obligatoires.");
@@ -580,6 +562,7 @@
 
                     const v = { id: String(vId), date: dateVisite, updatedAt: Date.now() };
                     
+                    // Sécurité : Vérifie que le champ existe bien avant d'essayer de lire sa valeur
                     for(let key in FIELDS) { 
                         if(key !== 'id') {
                             const el = document.getElementById(FIELDS[key]);
@@ -620,7 +603,7 @@
                         const pastVisits = this.visits.filter(x => x.name.toLowerCase().trim() === pName && x.id !== id);
                         if (pastVisits.length > 0 && histSection && histList) {
                             histSection.style.display = 'block';
-                            pastVisits.sort((a,b) => (new Date(b.date).getTime()||0) - (new Date(a.date).getTime()||0)).forEach(pv => {
+                            pastVisits.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(pv => {
                                 const pvDate = new Date(pv.date);
                                 histList.innerHTML += `<div style="background: #f4f7f6; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;" onclick="app.showForm('${pv.id}')"><div><strong style="color:var(--primary-color);">${pvDate.toLocaleDateString('fr-FR')} à ${pvDate.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}</strong> - ${pv.reason}</div><button type="button" class="btn btn-outline" style="padding: 4px 8px; font-size: 0.8rem;">Ouvrir</button></div>`;
                             });
@@ -636,27 +619,23 @@
                 this.renderScansList(); window.scrollTo({ top: 0, behavior: 'smooth' });
             },
 
+            // --- EXPORT & IMPORT ---
             async exportBackup() {
                 try {
                     const data = localStorage.getItem(this.STORAGE_KEY); if(!data) return alert("Base vide.");
                     const scansData = {}; await localforage.iterate((value, key) => { scansData[key] = value; });
                     const blob = new Blob([JSON.stringify({ visits: data, scans: scansData })], { type: "application/json" });
-                    pureDownload(`DocPocket_Sync_${new Date().toISOString().slice(0,10)}.json`, blob);
+                    await saveOrShareFile(`DocPocket_Sync_${new Date().toISOString().slice(0,10)}.json`, blob, "application/json");
                 } catch (e) { alert("Erreur d'exportation."); }
             },
-
             importBackup(e) {
                 const file = e.target.files[0]; if(!file) return; const reader = new FileReader();
                 reader.onload = async (ev) => {
-                    const content = ev.target.result.trim();
                     try {
-                        let parsedData;
-                        try { parsedData = JSON.parse(content); } catch(err) { parsedData = null; }
-
+                        const parsedData = JSON.parse(ev.target.result);
                         if (parsedData && parsedData.visits) {
-                            const decTxt = await cryptoUtils.decrypt(parsedData.visits, this.currentPin); 
-                            const impV = JSON.parse(decTxt);
-                            if (confirm("🔄 Lancer la restauration des données ?")) { 
+                            const decTxt = await cryptoUtils.decrypt(parsedData.visits, this.currentPin); const impV = JSON.parse(decTxt);
+                            if (confirm("🔄 Lancer la synchronisation intelligente ?")) { 
                                 impV.forEach(iv => {
                                     const idx = this.visits.findIndex(v => String(v.id) === String(iv.id));
                                     if (idx === -1) this.visits.push(iv);
@@ -666,9 +645,7 @@
                                         if (iUpdate > cUpdate) this.visits[idx] = iv;
                                     }
                                 });
-                                this.visits.sort((a, b) => (new Date(b.date).getTime()||0) - (new Date(a.date).getTime()||0)); 
-                                await this.saveData();
-                                
+                                this.visits.sort((a, b) => new Date(b.date) - new Date(a.date)); await this.saveData();
                                 if (parsedData.scans) {
                                     for (const k in parsedData.scans) {
                                         if (k.startsWith('docpocket_')) { await localforage.setItem(k, parsedData.scans[k]); continue; }
@@ -677,64 +654,36 @@
                                         await localforage.setItem(k, uniq);
                                     }
                                 }
-                                alert("✅ Restauration réussie !"); window.location.reload(); 
+                                alert("✅ Synchronisation réussie !"); window.location.reload(); 
                             }
                         } else {
-                            await cryptoUtils.decrypt(content, this.currentPin); 
-                            if (confirm("⚠️ Format de sauvegarde direct détecté. Restaurer cette base ?")) { 
-                                localStorage.setItem(this.STORAGE_KEY, content); 
-                                window.location.reload(); 
-                            }
+                            await cryptoUtils.decrypt(ev.target.result, this.currentPin); 
+                            if (confirm("⚠️ Restaurer l'ancienne sauvegarde ?")) { localStorage.setItem(this.STORAGE_KEY, ev.target.result); window.location.reload(); }
                         }
-                    } catch (err) { alert("❌ Code PIN incorrect ou fichier illisible."); }
+                    } catch (err) { alert("❌ Fichier invalide."); }
                 }; reader.readAsText(file); e.target.value = ''; 
             },
 
-            // --- NOUVEAU MOTEUR DU JOURNAL FINANCIER EN VERITABLE PDF CLINIQUE CLAIR ---
+            // --- IMPRESSION & PDF ---
             async generateMonthlyReport(event) {
                 const [y, m] = document.getElementById('report-month').value.split('-'); if(!y) return;
-                const filtered = this.visits.filter(v => new Date(v.date).getFullYear() == y && new Date(v.date).getMonth() == m - 1).sort((a, b) => (new Date(a.date).getTime()||0) - (new Date(b.date).getTime()||0));
-                
+                const filtered = this.visits.filter(v => new Date(v.date).getFullYear() == y && new Date(v.date).getMonth() == m - 1).sort((a, b) => new Date(a.date) - new Date(b.date));
                 if (filtered.length === 0) return alert("Aucun acte enregistré ce mois.");
 
-                // Remplissage du tableau HTML hors-écran
-                document.getElementById('report-period-display').textContent = `${m}/${y}`; 
-                document.getElementById('report-signature-name').textContent = this.doctorName;
-                const tbody = document.getElementById('report-table-body'); 
-                tbody.innerHTML = ''; 
-                let total = 0;
-                
-                filtered.forEach(v => { 
-                    const f = parseFloat(v.fee) || 0; 
-                    total += f; 
-                    let vDate = new Date(v.date); if(isNaN(vDate.getTime())) vDate = new Date();
-                    tbody.innerHTML += `<tr><td>${vDate.toLocaleDateString('fr-FR')}</td><td><b>${v.name}</b></td><td>${v.reason}</td><td style="text-align:right; font-weight:bold;">${f > 0 ? f.toFixed(3) + ' DT' : '-'}</td></tr>`; 
-                });
+                document.getElementById('report-period-display').textContent = `${m}/${y}`; document.getElementById('report-signature-name').textContent = this.doctorName;
+                const tbody = document.getElementById('report-table-body'); tbody.innerHTML = ''; let total = 0;
+                filtered.forEach(v => { const f = parseFloat(v.fee) || 0; total += f; tbody.innerHTML += `<tr><td style="padding:5px; border-bottom:1px solid #eee;">${new Date(v.date).toLocaleDateString('fr-FR')}</td><td style="padding:5px; border-bottom:1px solid #eee;"><b>${v.name}</b></td><td style="text-align:right; padding:5px; border-bottom:1px solid #eee;"><b>${f>0?f.toFixed(3)+' DT':'-'}</b></td></tr>`; });
                 document.getElementById('report-total-sum').textContent = total.toFixed(3);
                 
-                const element = document.getElementById('print-report-view'); 
-                const fn = `Journal_Honoraires_${m}-${y}.pdf`;
-                let btnText = "Générer le Journal PDF"; if (event && event.target) { btnText = event.target.innerText; event.target.innerText = "⏳..."; }
-                
+                const element = document.getElementById('print-report-view'); element.style.display = 'block';
+                let btnText = "Générer (PDF)"; if (event && event.target) { btnText = event.target.innerText; event.target.innerText = "⏳..."; }
                 try {
-                    const opt = { 
-                        margin: [15, 15, 15, 15], 
-                        filename: fn, 
-                        image: { type: 'jpeg', quality: 0.98 }, 
-                        html2canvas: { scale: 2, useCORS: true, logging: false }, 
-                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                        pagebreak: { mode: ['css', 'legacy'] }
-                    };
-                    // .save() natif : Injection stricte du fichier binaire PDF sans altération du smartphone
-                    await html2pdf().set(opt).from(element).save();
-                } catch(err) {
-                    alert("Erreur d'impression du bilan mensuel.");
-                } finally { 
-                    if (event && event.target) event.target.innerText = btnText; 
-                }
+                    const fn = `Journal_Honoraires_${m}-${y}.pdf`;
+                    const pdfBlob = await html2pdf().set({ margin: 10, filename: fn, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(element).output('blob');
+                    await saveOrShareFile(fn, pdfBlob, 'application/pdf');
+                } finally { element.style.display = 'none'; if (event && event.target) event.target.innerText = btnText; }
             },
 
-            // --- MOTEUR DU COMPTE RENDU PATIENT PDF (STRRICT ET SECURISE) ---
             async generatePDF(id, buttonElement) {
                 const v = this.visits.find(x => x.id === id); if (!v) return;
                 let vDate = new Date(v.date); if(isNaN(vDate.getTime())) vDate = new Date();
@@ -750,25 +699,14 @@
                     if(el) { if(v[k] && v[k].trim()!=='') { el.textContent = `${EXAM_LABELS[k]} : ${v[k]}`; el.style.display = 'block'; } else { el.textContent = ''; el.style.display = 'none'; } }
                 }
                 
-                const element = document.getElementById('print-view'); 
+                const element = document.getElementById('print-view'); element.style.display = 'block';
                 const fn = `Rapport_Medical_${v.name.replace(/\s+/g, '_')}_${vDate.toLocaleDateString('fr-FR').replace(/\//g, '-')}.pdf`;
                 let btnText = "📄 PDF"; if (buttonElement) { btnText = buttonElement.innerText; buttonElement.innerText = "⏳..."; }
 
                 try {
-                    const opt = { 
-                        margin: [15, 15, 15, 15], 
-                        filename: fn, 
-                        image: { type: 'jpeg', quality: 0.98 }, 
-                        html2canvas: { scale: 2, useCORS: true, logging: false }, 
-                        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-                        pagebreak: { mode: ['css', 'legacy'] }
-                    };
-                    await html2pdf().set(opt).from(element).save();
-                } catch(err) {
-                    alert("Erreur d'impression du rapport patient.");
-                } finally { 
-                    if (buttonElement) buttonElement.innerText = btnText; 
-                }
+                    const pdfBlob = await html2pdf().set({ margin: 10, filename: fn, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(element).output('blob');
+                    await saveOrShareFile(fn, pdfBlob, 'application/pdf');
+                } finally { element.style.display = 'none'; if (buttonElement) buttonElement.innerText = btnText; }
             },
 
             renderDashboard(fStr = '') {
@@ -784,7 +722,7 @@
                     pMap[key].visits.push(v);
                 });
 
-                const sortedPatients = Object.values(pMap).sort((a,b) => Math.max(...b.visits.map(v=>(new Date(v.date).getTime()||0))) - Math.max(...a.visits.map(v=>(new Date(v.date).getTime()||0))));
+                const sortedPatients = Object.values(pMap).sort((a,b) => Math.max(...b.visits.map(v=>new Date(v.date))) - Math.max(...a.visits.map(v=>new Date(v.date))));
                 
                 const isSearching = searchStr.length > 0;
                 const maxDisplay = isSearching ? sortedPatients.length : 10;
@@ -797,10 +735,10 @@
                 }
 
                 patientsToDisplay.forEach((p, idx) => {
-                    p.visits.sort((a,b) => (new Date(b.date).getTime()||0) - (new Date(a.date).getTime()||0));
+                    p.visits.sort((a,b) => new Date(b.date) - new Date(a.date));
                     let vHtml = '';
                     p.visits.forEach(v => {
-                        const fee = parseFloat(v.fee) || 0; let vDate = new Date(v.date); if(isNaN(vDate.getTime())) vDate = new Date();
+                        const fee = parseFloat(v.fee) || 0; const vDate = new Date(v.date);
                         vHtml += `<div class="consultation-item"><div style="display:flex; justify-content:space-between; margin-bottom:8px; border-bottom:1px solid #eee; padding-bottom:5px;"><strong style="color:var(--primary-color); font-size:0.95rem;">${vDate.toLocaleDateString('fr-FR')} à ${vDate.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}</strong><span style="font-size:0.85rem; font-weight:bold; color:var(--success-color);">${fee>0?fee.toFixed(3)+' DT':'-'}</span></div><p style="font-size:0.9rem; margin-bottom:10px;"><strong>Motif :</strong> ${v.reason}</p><div style="display:flex; gap:8px;"><button type="button" class="btn btn-outline" style="flex:1; padding:6px; background:white;" onclick="app.generatePDF('${v.id}', this)">📄 PDF</button><button type="button" class="btn btn-outline" style="flex:1; padding:6px; background:white;" onclick="app.showForm('${v.id}')">✏️ Ouvrir</button><button type="button" class="btn btn-danger" style="flex:1; padding:6px;" onclick="app.deleteVisit('${v.id}')">🗑️</button></div></div>`;
                     });
                     const sId = 'patient-acc-' + idx;
