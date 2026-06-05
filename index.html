@@ -382,10 +382,11 @@
             }
         };
 
+        // GESTION DU ENREGISTRER SOUS / TÉLÉCHARGEMENT DIRECT
         async function saveOrShareFile(filename, blob, mimeType) {
             if (window.showSaveFilePicker) {
                 try {
-                    const handle = await window.showSaveFilePicker({ suggestedName: filename, types: [{ description: 'DocPocket File', accept: { [mimeType]: ['.json', '.pdf'] } }] });
+                    const handle = await window.showSaveFilePicker({ suggestedName: filename, types: [{ description: 'Fichier', accept: { [mimeType]: ['.json', '.pdf'] } }] });
                     const writable = await handle.createWritable(); await writable.write(blob); await writable.close(); return;
                 } catch (err) { if (err.name === 'AbortError') return; }
             }
@@ -415,7 +416,7 @@
             async submitPin() {
                 if (this.currentPinInput.length !== 4) return alert("4 chiffres requis.");
                 if (this.mode === 'setup') { try { const encryptedEmpty = await cryptoUtils.encrypt("[]", this.currentPinInput); localStorage.setItem(app.STORAGE_KEY, encryptedEmpty); localStorage.setItem('docpocket_pin_configured', 'true'); app.currentPin = this.currentPinInput; this.unlockApp(); } catch(e) { alert("Erreur."); } } 
-                else if (this.mode === 'login') { try { const data = localStorage.getItem(app.STORAGE_KEY); if (data) { const txt = await cryptoUtils.decrypt(data, this.currentPinInput); app.visits = JSON.parse(txt); } else app.visits = []; app.currentPin = this.currentPinInput; this.unlockApp(); } catch (e) { alert("PIN incorrect."); this.clearPin(); } } 
+                else if (this.mode === 'login') { try { const data = localStorage.getItem(app.STORAGE_KEY); if (data) { const txt = await cryptoUtils.decrypt(data, this.currentPinInput); app.visits = JSON.parse(txt); } else app.visits = []; app.currentPin = this.currentPinInput; this.unlockApp(); } catch (error) { alert("PIN incorrect."); this.clearPin(); } } 
                 else if (this.mode === 'change_pin_old') { if (this.currentPinInput === app.currentPin) { this.mode = 'change_pin_new'; document.getElementById('pin-title').innerText = "Saisissez le NOUVEAU PIN"; this.clearPin(); } else { alert("Ancien PIN incorrect."); this.clearPin(); } } 
                 else if (this.mode === 'change_pin_new') { this.tempNewPin = this.currentPinInput; this.mode = 'change_pin_confirm'; document.getElementById('pin-title').innerText = "Confirmez le NOUVEAU PIN"; this.clearPin(); } 
                 else if (this.mode === 'change_pin_confirm') { if (this.currentPinInput === this.tempNewPin) { app.currentPin = this.tempNewPin; await app.saveData(); alert("✅ PIN modifié !"); document.getElementById('btn-cancel-change').classList.add('hidden'); this.unlockApp(); } else { alert("Non correspondant."); this.mode = 'change_pin_new'; document.getElementById('pin-title').innerText = "Saisissez le NOUVEAU PIN"; this.clearPin(); } }
@@ -543,7 +544,7 @@
             },
             closeScanViewer() { document.getElementById('view-scan-modal').classList.add('hidden'); document.getElementById('modal-scan-img').src = ""; document.getElementById('modal-scan-pdf').src = ""; },
 
-            // BOULIER ANTI-PLANTAGE INTÉGRÉ ICI
+            // SYSTÈME DE SAUVEGARDE CLINIQUE SÉCURISÉ (BOUCLIER UNIFIÉ)
             async saveVisit(e) {
                 if (e) e.preventDefault(); 
                 if (!document.getElementById('patient-name').value.trim() || !document.getElementById('visit-reason').value.trim()) return alert("⚠️ Nom et motif obligatoires.");
@@ -562,7 +563,7 @@
 
                     const v = { id: String(vId), date: dateVisite, updatedAt: Date.now() };
                     
-                    // Sécurité : Vérifie que le champ existe bien avant d'essayer de lire sa valeur
+                    // Sécurité boucle de lecture anti-null
                     for(let key in FIELDS) { 
                         if(key !== 'id') {
                             const el = document.getElementById(FIELDS[key]);
@@ -575,7 +576,7 @@
                     
                     await localforage.setItem('scans_' + vId, this.currentScans);
                     await this.saveData(); this.showDashboard(); window.scrollTo({ top: 0, behavior: 'smooth' });
-                } catch (erreur) { alert("Erreur technique : " + erreur.message); }
+                } catch (erreur) { alert("Erreur d'écriture : " + erreur.message); }
             },
 
             async deleteVisit(id) { if (confirm("Supprimer définitivement cette consultation ?")) { this.visits = this.visits.filter(v => v.id !== id); await localforage.removeItem('scans_' + id); await this.saveData(); this.renderDashboard(); } },
@@ -619,15 +620,21 @@
                 this.renderScansList(); window.scrollTo({ top: 0, behavior: 'smooth' });
             },
 
-            // --- EXPORT & IMPORT ---
+            // EXPÉDITION DU FICHIER JSON CRYPTÉ (SAUVEGARDE GLOBALE)
             async exportBackup() {
                 try {
                     const data = localStorage.getItem(this.STORAGE_KEY); if(!data) return alert("Base vide.");
                     const scansData = {}; await localforage.iterate((value, key) => { scansData[key] = value; });
                     const blob = new Blob([JSON.stringify({ visits: data, scans: scansData })], { type: "application/json" });
-                    await saveOrShareFile(`DocPocket_Sync_${new Date().toISOString().slice(0,10)}.json`, blob, "application/json");
+                    
+                    const filename = `DocPocket_Sync_${new Date().toISOString().slice(0,10)}.json`;
+                    
+                    // Force l'exportation du fichier de synchronisation JSON brut
+                    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.style.display = 'none'; a.href = url; a.download = filename;
+                    document.body.appendChild(a); a.click(); setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 100);
                 } catch (e) { alert("Erreur d'exportation."); }
             },
+
             importBackup(e) {
                 const file = e.target.files[0]; if(!file) return; const reader = new FileReader();
                 reader.onload = async (ev) => {
@@ -636,7 +643,8 @@
                         if (parsedData && parsedData.visits) {
                             const decTxt = await cryptoUtils.decrypt(parsedData.visits, this.currentPin); const impV = JSON.parse(decTxt);
                             if (confirm("🔄 Lancer la synchronisation intelligente ?")) { 
-                                impV.forEach(iv => {
+                                Math.max;
+                                importedVisits.forEach(iv => {
                                     const idx = this.visits.findIndex(v => String(v.id) === String(iv.id));
                                     if (idx === -1) this.visits.push(iv);
                                     else {
@@ -684,6 +692,7 @@
                 } finally { element.style.display = 'none'; if (event && event.target) event.target.innerText = btnText; }
             },
 
+            // CORRECTION STRUCTURELLE : GENERATION STRICATE ET UNIQUE DU PDF CLINIQUE
             async generatePDF(id, buttonElement) {
                 const v = this.visits.find(x => x.id === id); if (!v) return;
                 let vDate = new Date(v.date); if(isNaN(vDate.getTime())) vDate = new Date();
@@ -704,11 +713,15 @@
                 let btnText = "📄 PDF"; if (buttonElement) { btnText = buttonElement.innerText; buttonElement.innerText = "⏳..."; }
 
                 try {
+                    // html2pdf intercepte la vue d'impression et génère le fichier binaire PDF (blob)
                     const pdfBlob = await html2pdf().set({ margin: 10, filename: fn, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(element).output('blob');
+                    
+                    // Transmission sécurisée au sélecteur d'emplacement ou au partage natif mobile
                     await saveOrShareFile(fn, pdfBlob, 'application/pdf');
                 } finally { element.style.display = 'none'; if (buttonElement) buttonElement.innerText = btnText; }
             },
 
+            // --- SMART DASHBOARD (PAGINATION À 10 RÉSULTATS) ---
             renderDashboard(fStr = '') {
                 const list = document.getElementById('visits-list'); list.innerHTML = '';
                 const searchStr = fStr.trim().toLowerCase();
