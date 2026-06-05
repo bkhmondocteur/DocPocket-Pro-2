@@ -349,7 +349,6 @@
     </div>
 
     <script>
-        // DICTIONNAIRES DE DONNÉES
         const FIELDS = {
             id: 'visit-id', name: 'patient-name', origin: 'patient-origin', docType: 'patient-doc-type', docNum: 'patient-doc-num',
             dob: 'patient-dob', age: 'patient-age', phone: 'patient-phone', reason: 'visit-reason', history: 'medical-history',
@@ -382,17 +381,29 @@
             }
         };
 
+        // LA CORRECTION DU BUG D'EXPORTATION PDF vs JSON EST ICI
         async function saveOrShareFile(filename, blob, mimeType) {
+            const ext = filename.endsWith('.pdf') ? '.pdf' : '.json';
+            const desc = ext === '.pdf' ? 'Document PDF' : 'Fichier de sauvegarde';
+            
             if (window.showSaveFilePicker) {
                 try {
-                    const handle = await window.showSaveFilePicker({ suggestedName: filename, types: [{ description: 'Fichier', accept: { [mimeType]: ['.json', '.pdf'] } }] });
-                    const writable = await handle.createWritable(); await writable.write(blob); await writable.close(); return;
+                    const handle = await window.showSaveFilePicker({ 
+                        suggestedName: filename, 
+                        types: [{ description: desc, accept: { [mimeType]: [ext] } }] 
+                    });
+                    const writable = await handle.createWritable(); 
+                    await writable.write(blob); 
+                    await writable.close(); 
+                    return;
                 } catch (err) { if (err.name === 'AbortError') return; }
             }
+            
             const file = new File([blob], filename, { type: mimeType });
             if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
                 try { await navigator.share({ files: [file], title: filename }); return; } catch (err) {}
             }
+            
             const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.style.display = 'none'; a.href = url; a.download = filename;
             document.body.appendChild(a); a.click(); setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 100);
         }
@@ -543,7 +554,6 @@
             },
             closeScanViewer() { document.getElementById('view-scan-modal').classList.add('hidden'); document.getElementById('modal-scan-img').src = ""; document.getElementById('modal-scan-pdf').src = ""; },
 
-            // SAUVEGARDE CLINIQUE AVEC BOUCLIER ANTI-PLANTAGE
             async saveVisit(e) {
                 if (e) e.preventDefault(); 
                 if (!document.getElementById('patient-name').value.trim() || !document.getElementById('visit-reason').value.trim()) return alert("⚠️ Nom et motif obligatoires.");
@@ -562,7 +572,6 @@
 
                     const v = { id: String(vId), date: dateVisite, updatedAt: Date.now() };
                     
-                    // Sécurité : Vérifie que le champ existe bien (anti-null)
                     for(let key in FIELDS) { 
                         if(key !== 'id') {
                             const el = document.getElementById(FIELDS[key]);
@@ -624,7 +633,7 @@
                     const data = localStorage.getItem(this.STORAGE_KEY); if(!data) return alert("Base vide.");
                     const scansData = {}; await localforage.iterate((value, key) => { scansData[key] = value; });
                     const blob = new Blob([JSON.stringify({ visits: data, scans: scansData })], { type: "application/json" });
-                    await saveOrShareFile(`DocPocket_Sync_${new Date().toISOString().slice(0,10)}.json`, blob, "application/json");
+                    await saveOrShareFile(`DocPocket_Sync_${new Date().toISOString().slice(0,10)}.json`, blob, 'application/json');
                 } catch (e) { alert("Erreur d'exportation."); }
             },
 
@@ -692,7 +701,6 @@
                 } finally { element.style.display = 'none'; if (event && event.target) event.target.innerText = btnText; }
             },
 
-            // GÉNÉRATION STRICTE DU PDF CLINIQUE
             async generatePDF(id, buttonElement) {
                 const v = this.visits.find(x => x.id === id); if (!v) return;
                 let vDate = new Date(v.date); if(isNaN(vDate.getTime())) vDate = new Date();
