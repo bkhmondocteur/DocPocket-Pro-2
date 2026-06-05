@@ -325,7 +325,7 @@
         </div>
         <div class="print-section">
             <h3>Constatations Physiques</h3>
-            <div id="p-exam-gen" class="print-exam-line"></div><div id="p-exam-hemo" class="print-exam-line"></div><div id="p-exam-resp" class="print-exam-line"></div><div id="p-exam-neuro" class="print-exam-line"></div><div id="p-exam-abdo" class="print-exam-line"></div><div id="p-exam-other" class="print-exam-line"></div>
+            <div id="p-exam-general" class="print-exam-line"></div><div id="p-exam-hemo" class="print-exam-line"></div><div id="p-exam-resp" class="print-exam-line"></div><div id="p-exam-neuro" class="print-exam-line"></div><div id="p-exam-abdo" class="print-exam-line"></div><div id="p-exam-other" class="print-exam-line"></div>
             <div id="p-exam-reco" class="print-exam-line" style="margin-top: 10px; font-weight: bold;"></div>
         </div>
         <div class="print-section"><h3>Plan Thérapeutique</h3><p id="p-prescription" class="print-value"></p></div>
@@ -382,7 +382,6 @@
             }
         };
 
-        // GESTION DU ENREGISTRER SOUS / TÉLÉCHARGEMENT DIRECT
         async function saveOrShareFile(filename, blob, mimeType) {
             if (window.showSaveFilePicker) {
                 try {
@@ -474,7 +473,7 @@
             toggleAccordion(id) { const el = document.getElementById(id); const ic = document.getElementById('icon-' + id); if (el.style.display === 'none') { el.style.display = 'block'; ic.innerText = '▲'; } else { el.style.display = 'none'; ic.innerText = '▼'; } },
             
             newVisitForPatient(patientName) {
-                const pVisits = this.visits.filter(v => v.name.trim().toLowerCase() === patientName.trim().toLowerCase()).sort((a,b) => new Date(b.date) - new Date(a.date));
+                const pVisits = this.visits.filter(v => v.name.trim().toLowerCase() === patientName.trim().toLowerCase()).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
                 this.showForm(); 
                 if(pVisits[0]) {
                     const fieldsToKeep = ['name', 'origin', 'docType', 'docNum', 'dob', 'age', 'phone', 'history', 'allergies', 'weight', 'height'];
@@ -544,7 +543,7 @@
             },
             closeScanViewer() { document.getElementById('view-scan-modal').classList.add('hidden'); document.getElementById('modal-scan-img').src = ""; document.getElementById('modal-scan-pdf').src = ""; },
 
-            // SYSTÈME DE SAUVEGARDE CLINIQUE SÉCURISÉ (BOUCLIER UNIFIÉ)
+            // SAUVEGARDE CLINIQUE AVEC BOUCLIER ANTI-PLANTAGE
             async saveVisit(e) {
                 if (e) e.preventDefault(); 
                 if (!document.getElementById('patient-name').value.trim() || !document.getElementById('visit-reason').value.trim()) return alert("⚠️ Nom et motif obligatoires.");
@@ -563,7 +562,7 @@
 
                     const v = { id: String(vId), date: dateVisite, updatedAt: Date.now() };
                     
-                    // Sécurité boucle de lecture anti-null
+                    // Sécurité : Vérifie que le champ existe bien (anti-null)
                     for(let key in FIELDS) { 
                         if(key !== 'id') {
                             const el = document.getElementById(FIELDS[key]);
@@ -576,7 +575,7 @@
                     
                     await localforage.setItem('scans_' + vId, this.currentScans);
                     await this.saveData(); this.showDashboard(); window.scrollTo({ top: 0, behavior: 'smooth' });
-                } catch (erreur) { alert("Erreur d'écriture : " + erreur.message); }
+                } catch (erreur) { alert("Erreur technique : " + erreur.message); }
             },
 
             async deleteVisit(id) { if (confirm("Supprimer définitivement cette consultation ?")) { this.visits = this.visits.filter(v => v.id !== id); await localforage.removeItem('scans_' + id); await this.saveData(); this.renderDashboard(); } },
@@ -604,7 +603,7 @@
                         const pastVisits = this.visits.filter(x => x.name.toLowerCase().trim() === pName && x.id !== id);
                         if (pastVisits.length > 0 && histSection && histList) {
                             histSection.style.display = 'block';
-                            pastVisits.sort((a,b) => new Date(b.date) - new Date(a.date)).forEach(pv => {
+                            pastVisits.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).forEach(pv => {
                                 const pvDate = new Date(pv.date);
                                 histList.innerHTML += `<div style="background: #f4f7f6; padding: 10px; border: 1px solid var(--border-color); border-radius: 6px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px;" onclick="app.showForm('${pv.id}')"><div><strong style="color:var(--primary-color);">${pvDate.toLocaleDateString('fr-FR')} à ${pvDate.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}</strong> - ${pv.reason}</div><button type="button" class="btn btn-outline" style="padding: 4px 8px; font-size: 0.8rem;">Ouvrir</button></div>`;
                             });
@@ -620,31 +619,28 @@
                 this.renderScansList(); window.scrollTo({ top: 0, behavior: 'smooth' });
             },
 
-            // EXPÉDITION DU FICHIER JSON CRYPTÉ (SAUVEGARDE GLOBALE)
             async exportBackup() {
                 try {
                     const data = localStorage.getItem(this.STORAGE_KEY); if(!data) return alert("Base vide.");
                     const scansData = {}; await localforage.iterate((value, key) => { scansData[key] = value; });
                     const blob = new Blob([JSON.stringify({ visits: data, scans: scansData })], { type: "application/json" });
-                    
-                    const filename = `DocPocket_Sync_${new Date().toISOString().slice(0,10)}.json`;
-                    
-                    // Force l'exportation du fichier de synchronisation JSON brut
-                    const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.style.display = 'none'; a.href = url; a.download = filename;
-                    document.body.appendChild(a); a.click(); setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 100);
+                    await saveOrShareFile(`DocPocket_Sync_${new Date().toISOString().slice(0,10)}.json`, blob, "application/json");
                 } catch (e) { alert("Erreur d'exportation."); }
             },
 
             importBackup(e) {
                 const file = e.target.files[0]; if(!file) return; const reader = new FileReader();
                 reader.onload = async (ev) => {
+                    const content = ev.target.result.trim();
                     try {
-                        const parsedData = JSON.parse(ev.target.result);
+                        let parsedData;
+                        try { parsedData = JSON.parse(content); } catch(err) { parsedData = null; }
+
                         if (parsedData && parsedData.visits) {
-                            const decTxt = await cryptoUtils.decrypt(parsedData.visits, this.currentPin); const impV = JSON.parse(decTxt);
-                            if (confirm("🔄 Lancer la synchronisation intelligente ?")) { 
-                                Math.max;
-                                importedVisits.forEach(iv => {
+                            const decTxt = await cryptoUtils.decrypt(parsedData.visits, this.currentPin); 
+                            const impV = JSON.parse(decTxt);
+                            if (confirm("🔄 Lancer la restauration des données ?")) { 
+                                impV.forEach(iv => {
                                     const idx = this.visits.findIndex(v => String(v.id) === String(iv.id));
                                     if (idx === -1) this.visits.push(iv);
                                     else {
@@ -653,7 +649,9 @@
                                         if (iUpdate > cUpdate) this.visits[idx] = iv;
                                     }
                                 });
-                                this.visits.sort((a, b) => new Date(b.date) - new Date(a.date)); await this.saveData();
+                                this.visits.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()); 
+                                await this.saveData();
+                                
                                 if (parsedData.scans) {
                                     for (const k in parsedData.scans) {
                                         if (k.startsWith('docpocket_')) { await localforage.setItem(k, parsedData.scans[k]); continue; }
@@ -662,20 +660,22 @@
                                         await localforage.setItem(k, uniq);
                                     }
                                 }
-                                alert("✅ Synchronisation réussie !"); window.location.reload(); 
+                                alert("✅ Restauration réussie !"); window.location.reload(); 
                             }
                         } else {
-                            await cryptoUtils.decrypt(ev.target.result, this.currentPin); 
-                            if (confirm("⚠️ Restaurer l'ancienne sauvegarde ?")) { localStorage.setItem(this.STORAGE_KEY, ev.target.result); window.location.reload(); }
+                            await cryptoUtils.decrypt(content, this.currentPin); 
+                            if (confirm("⚠️ Format de sauvegarde direct détecté. Restaurer cette base ?")) { 
+                                localStorage.setItem(this.STORAGE_KEY, content); 
+                                window.location.reload(); 
+                            }
                         }
-                    } catch (err) { alert("❌ Fichier invalide."); }
+                    } catch (err) { alert("❌ Code PIN incorrect ou fichier illisible."); }
                 }; reader.readAsText(file); e.target.value = ''; 
             },
 
-            // --- IMPRESSION & PDF ---
             async generateMonthlyReport(event) {
                 const [y, m] = document.getElementById('report-month').value.split('-'); if(!y) return;
-                const filtered = this.visits.filter(v => new Date(v.date).getFullYear() == y && new Date(v.date).getMonth() == m - 1).sort((a, b) => new Date(a.date) - new Date(b.date));
+                const filtered = this.visits.filter(v => new Date(v.date).getFullYear() == y && new Date(v.date).getMonth() == m - 1).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
                 if (filtered.length === 0) return alert("Aucun acte enregistré ce mois.");
 
                 document.getElementById('report-period-display').textContent = `${m}/${y}`; document.getElementById('report-signature-name').textContent = this.doctorName;
@@ -692,7 +692,7 @@
                 } finally { element.style.display = 'none'; if (event && event.target) event.target.innerText = btnText; }
             },
 
-            // CORRECTION STRUCTURELLE : GENERATION STRICATE ET UNIQUE DU PDF CLINIQUE
+            // GÉNÉRATION STRICTE DU PDF CLINIQUE
             async generatePDF(id, buttonElement) {
                 const v = this.visits.find(x => x.id === id); if (!v) return;
                 let vDate = new Date(v.date); if(isNaN(vDate.getTime())) vDate = new Date();
@@ -713,15 +713,11 @@
                 let btnText = "📄 PDF"; if (buttonElement) { btnText = buttonElement.innerText; buttonElement.innerText = "⏳..."; }
 
                 try {
-                    // html2pdf intercepte la vue d'impression et génère le fichier binaire PDF (blob)
                     const pdfBlob = await html2pdf().set({ margin: 10, filename: fn, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } }).from(element).output('blob');
-                    
-                    // Transmission sécurisée au sélecteur d'emplacement ou au partage natif mobile
                     await saveOrShareFile(fn, pdfBlob, 'application/pdf');
                 } finally { element.style.display = 'none'; if (buttonElement) buttonElement.innerText = btnText; }
             },
 
-            // --- SMART DASHBOARD (PAGINATION À 10 RÉSULTATS) ---
             renderDashboard(fStr = '') {
                 const list = document.getElementById('visits-list'); list.innerHTML = '';
                 const searchStr = fStr.trim().toLowerCase();
@@ -735,7 +731,7 @@
                     pMap[key].visits.push(v);
                 });
 
-                const sortedPatients = Object.values(pMap).sort((a,b) => Math.max(...b.visits.map(v=>new Date(v.date))) - Math.max(...a.visits.map(v=>new Date(v.date))));
+                const sortedPatients = Object.values(pMap).sort((a,b) => Math.max(...b.visits.map(v=>new Date(v.date).getTime())) - Math.max(...a.visits.map(v=>new Date(v.date).getTime())));
                 
                 const isSearching = searchStr.length > 0;
                 const maxDisplay = isSearching ? sortedPatients.length : 10;
@@ -748,7 +744,7 @@
                 }
 
                 patientsToDisplay.forEach((p, idx) => {
-                    p.visits.sort((a,b) => new Date(b.date) - new Date(a.date));
+                    p.visits.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime());
                     let vHtml = '';
                     p.visits.forEach(v => {
                         const fee = parseFloat(v.fee) || 0; const vDate = new Date(v.date);
