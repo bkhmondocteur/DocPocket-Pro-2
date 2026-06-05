@@ -38,6 +38,7 @@
         .bio-btn { background: transparent; border: 2px solid var(--primary-color); color: var(--primary-color); padding: 0.7rem; border-radius: var(--radius); width: 100%; font-size: 0.95rem; font-weight: bold; cursor: pointer; margin-top: 1rem; display: flex; align-items: center; justify-content: center; gap: 8px; }
 
         /* HEADER CENTRÉ */
+        #app-ui { background-color: var(--bg-color); min-height: 100vh; position: relative; z-index: 1; }
         .app-header { background-color: var(--primary-color); color: white; padding: 0.8rem 1rem; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .header-left, .header-right { flex: 1; display: flex; align-items: center; }
         .header-right { justify-content: flex-end; gap: 0.5rem; }
@@ -105,28 +106,19 @@
             .app-header h1 { font-size: 1.5rem; }
         }
 
-        /* ==========================================================
-           LA "CHAMBRE NOIRE" (RÉSOLUTION DÉFINITIVE DES BUGS PDF)
-           ========================================================== */
-        #print-wrapper {
-            position: absolute;
-            left: -9999px;
-            top: -9999px;
-            width: 0;
-            height: 0;
-            overflow: hidden;
-            z-index: -1;
-        }
-
+        /* =========================================
+           STYLES PDF IMPRESSION (Cachés par défaut)
+           ========================================= */
         #print-view, #print-report-view { 
-            width: 800px; /* Force la taille A4 pour le moteur PDF */
+            display: none; 
             background: white; 
             color: black; 
             font-family: 'Bookman Old Style', serif; 
             font-size: 13pt; 
             padding: 10mm; 
+            width: 100%; 
+            max-width: 800px; 
             box-sizing: border-box;
-            /* Attention: Ne JAMAIS mettre display: none ici */
         }
         
         .print-header { display: flex; flex-direction: row; justify-content: space-between; align-items: center; border-bottom: 2px solid black; padding-bottom: 15px; margin-bottom: 20px; width: 100%; box-sizing: border-box; }
@@ -137,7 +129,7 @@
         .print-logo { max-width: 80px; max-height: 60px; object-fit: contain; margin-bottom: 5px; }
         .print-personal-logo, .print-partner-logo { max-width: 100%; max-height: 80px; object-fit: contain; }
         
-        .print-header h1 { font-size: 18pt; margin-bottom: 5px; color: black; text-transform: uppercase;} 
+        .print-header h1 { font-size: 18pt; margin-bottom: 5px; color: black;} 
         .print-section { display: block; width: 100%; margin-bottom: 15px; page-break-inside: avoid; }
         .print-section h3 { color: black; border-bottom: 1px solid #ccc; padding-bottom: 2px; margin-bottom: 8px; font-size: 14pt; text-transform: uppercase; }
         .print-row { display: flex; flex-wrap: wrap; margin-bottom: 5px; gap: 10px; }
@@ -146,11 +138,11 @@
         .print-value { white-space: pre-wrap; }
         .print-exam-line { display: block; margin-bottom: 6px; white-space: pre-wrap; }
         
-        /* Protection des sauts de page pour signatures et tableaux */
+        /* Protection Anti-Coupure (Page Break) */
         .avoid-break { page-break-inside: avoid !important; break-inside: avoid !important; }
         .print-table { width: 100%; border-collapse: collapse; margin-top: 15px; margin-bottom: 15px; }
         .print-table th { border-bottom: 2px solid black; padding: 8px; text-align: left; font-weight: bold; }
-        .print-table td { border-bottom: 1px solid #e0E0E0; padding: 8px; text-align: left;}
+        .print-table td { border-bottom: 1px solid #e0E0E0; padding: 8px; text-align: left; }
     </style>
 </head>
 <body>
@@ -334,64 +326,62 @@
         <img id="modal-scan-img" class="modal-content hidden" src="" onclick="app.closeScanViewer()"><iframe id="modal-scan-pdf" class="modal-content hidden" src=""></iframe>
     </div>
 
-    <div id="print-wrapper">
-
-        <div id="print-view">
-            <div class="print-header">
-                <div class="print-header-left"><img class="print-personal-logo" src="" alt="" style="display:none;"></div>
-                <div class="print-header-center"><img class="print-logo" src="icon-512.png?v=3" alt="Logo"><h1>Rapport de Consultation</h1><p><span id="print-date-display"></span></p></div>
-                <div class="print-header-right"><img class="print-partner-logo" src="" alt="" style="display:none;"></div>
-            </div>
-            <div class="print-section">
-                <div class="print-row"><div class="print-col"><span class="print-label">Nom Patient :</span><span id="p-name"></span></div><div class="print-col"><span class="print-label">Âge :</span><span id="p-age"></span></div></div>
-                <div class="print-row"><div class="print-col"><span class="print-label">Document :</span><span id="p-doc"></span></div><div class="print-col"><span class="print-label">Téléphone :</span><span id="p-phone"></span></div></div>
-                <div class="print-row"><div class="print-col" style="flex:100%;"><span class="print-label">Motif :</span><span id="p-reason"></span></div></div>
-            </div>
-            <div class="print-section">
-                <h3>Données Fondamentales</h3>
-                <p><strong>ATCD :</strong> <span id="p-history"></span> | <strong>Allergies :</strong> <span id="p-allergies"></span></p>
-                <p><strong>Poids :</strong> <span id="p-weight"></span> kg | <strong>Taille :</strong> <span id="p-height"></span> cm</p>
-                <p><strong>TA :</strong> <span id="p-bp"></span> | <strong>Pouls :</strong> <span id="p-pulse"></span> | <strong>Temp :</strong> <span id="p-temp"></span> | <strong>SpO2 :</strong> <span id="p-spo2"></span></p>
-            </div>
-            <div class="print-section">
-                <h3>Constatations Physiques</h3>
-                <div id="p-exam-general" class="print-exam-line"></div><div id="p-exam-hemo" class="print-exam-line"></div><div id="p-exam-resp" class="print-exam-line"></div><div id="p-exam-neuro" class="print-exam-line"></div><div id="p-exam-abdo" class="print-exam-line"></div><div id="p-exam-other" class="print-exam-line"></div>
-                <div id="p-exam-reco" class="print-exam-line" style="margin-top: 10px; font-weight: bold;"></div>
-            </div>
-            <div class="print-section"><h3>Plan Thérapeutique</h3><p id="p-prescription" class="print-value"></p></div>
-            
-            <div class="avoid-break" style="text-align:right; margin-top:30px; display:flex; flex-direction:column; align-items:flex-end;">
-                <p><strong>Signature et Cachet :</strong></p><img id="print-signature-img" src="" style="max-height: 120px; max-width: 250px; display: none; margin-top: 10px; margin-bottom: 5px;"><p id="print-signature-name" style="font-weight:bold;"></p>
-            </div>
+    <div id="print-view">
+        <div class="print-header">
+            <div class="print-header-left"><img class="print-personal-logo" src="" alt="" style="display:none;"></div>
+            <div class="print-header-center"><img class="print-logo" src="icon-512.png?v=3" alt="Logo"><h1>Rapport de Consultation</h1><p><span id="print-date-display"></span></p></div>
+            <div class="print-header-right"><img class="print-partner-logo" src="" alt="" style="display:none;"></div>
         </div>
-
-        <div id="print-report-view">
-            <div class="print-header">
-                <div class="print-header-left"><img class="print-personal-logo" src="" alt="" style="display:none;"></div>
-                <div class="print-header-center"><img class="print-logo" src="icon-512.png?v=3" alt="Logo"><h1>Journal des Honoraires</h1><p>Période : <span id="report-period-display"></span></p></div>
-                <div class="print-header-right"><img class="print-partner-logo" src="" alt="" style="display:none;"></div>
-            </div>
-            
-            <table class="print-table">
-                <thead>
-                    <tr>
-                        <th style="width: 20%;">Date</th>
-                        <th style="width: 35%;">Patient</th>
-                        <th style="width: 25%;">Motif de consultation</th>
-                        <th style="width: 20%; text-align: right;">Montant (DT)</th>
-                    </tr>
-                </thead>
-                <tbody id="report-table-body">
-                    </tbody>
-            </table>
-
-            <div class="avoid-break">
-                <div style="margin-top:20px; text-align:right; font-size:14pt; font-weight:bold; border-top: 2px solid black; padding-top: 10px;">Total mensuel : <span id="report-total-sum"></span> DT</div>
-                <div style="text-align:right; margin-top:40px;"><p><strong>Clôturé par l'autorité médicale :</strong></p><p id="report-signature-name" style="font-weight:bold; margin-top: 10px;"></p></div>
-            </div>
+        <div class="print-section">
+            <div class="print-row"><div class="print-col"><span class="print-label">Nom Patient :</span><span id="p-name"></span></div><div class="print-col"><span class="print-label">Âge :</span><span id="p-age"></span></div></div>
+            <div class="print-row"><div class="print-col"><span class="print-label">Document :</span><span id="p-doc"></span></div><div class="print-col"><span class="print-label">Téléphone :</span><span id="p-phone"></span></div></div>
+            <div class="print-row"><div class="print-col" style="flex:100%;"><span class="print-label">Motif :</span><span id="p-reason"></span></div></div>
         </div>
+        <div class="print-section">
+            <h3>Données Fondamentales</h3>
+            <p><strong>ATCD :</strong> <span id="p-history"></span> | <strong>Allergies :</strong> <span id="p-allergies"></span></p>
+            <p><strong>Poids :</strong> <span id="p-weight"></span> kg | <strong>Taille :</strong> <span id="p-height"></span> cm</p>
+            <p><strong>TA :</strong> <span id="p-bp"></span> | <strong>Pouls :</strong> <span id="p-pulse"></span> | <strong>Temp :</strong> <span id="p-temp"></span> | <strong>SpO2 :</strong> <span id="p-spo2"></span></p>
+        </div>
+        <div class="print-section">
+            <h3>Constatations Physiques</h3>
+            <div id="p-exam-general" class="print-exam-line"></div><div id="p-exam-hemo" class="print-exam-line"></div><div id="p-exam-resp" class="print-exam-line"></div><div id="p-exam-neuro" class="print-exam-line"></div><div id="p-exam-abdo" class="print-exam-line"></div><div id="p-exam-other" class="print-exam-line"></div>
+            <div id="p-exam-reco" class="print-exam-line" style="margin-top: 10px; font-weight: bold;"></div>
+        </div>
+        <div class="print-section"><h3>Plan Thérapeutique</h3><p id="p-prescription" class="print-value"></p></div>
+        
+        <div class="avoid-break" style="text-align:right; margin-top:30px; display:flex; flex-direction:column; align-items:flex-end;">
+            <p><strong>Signature et Cachet :</strong></p><img id="print-signature-img" src="" style="max-height: 120px; max-width: 250px; display: none; margin-top: 10px; margin-bottom: 5px;"><p id="print-signature-name" style="font-weight:bold;"></p>
+        </div>
+    </div>
 
-    </div> <script>
+    <div id="print-report-view">
+        <div class="print-header">
+            <div class="print-header-left"><img class="print-personal-logo" src="" alt="" style="display:none;"></div>
+            <div class="print-header-center"><img class="print-logo" src="icon-512.png?v=3" alt="Logo"><h1>Journal des Honoraires</h1><p>Période : <span id="report-period-display"></span></p></div>
+            <div class="print-header-right"><img class="print-partner-logo" src="" alt="" style="display:none;"></div>
+        </div>
+        
+        <table class="print-table">
+            <thead>
+                <tr>
+                    <th style="width: 20%;">Date</th>
+                    <th style="width: 35%;">Patient</th>
+                    <th style="width: 25%;">Motif de consultation</th>
+                    <th style="width: 20%; text-align: right;">Montant (DT)</th>
+                </tr>
+            </thead>
+            <tbody id="report-table-body">
+                </tbody>
+        </table>
+
+        <div class="avoid-break">
+            <div style="margin-top:20px; text-align:right; font-size:14pt; font-weight:bold; border-top: 2px solid black; padding-top: 10px;">Total mensuel : <span id="report-total-sum"></span> DT</div>
+            <div style="text-align:right; margin-top:40px;"><p><strong>Clôturé par l'autorité médicale :</strong></p><p id="report-signature-name" style="font-weight:bold; margin-top: 10px;"></p></div>
+        </div>
+    </div>
+
+    <script>
         const FIELDS = {
             id: 'visit-id', name: 'patient-name', origin: 'patient-origin', docType: 'patient-doc-type', docNum: 'patient-doc-num',
             dob: 'patient-dob', age: 'patient-age', phone: 'patient-phone', reason: 'visit-reason', history: 'medical-history',
@@ -423,18 +413,6 @@
                 return new TextDecoder().decode(decryptedBuffer);
             }
         };
-
-        // ENREGISTREMENT STRICT DES FICHIERS DE SAUVEGARDE EN JSON (SANS PASSER PAR LE MENU ANDROID)
-        function pureDownload(filename, blob) {
-            const url = URL.createObjectURL(blob); 
-            const a = document.createElement('a'); 
-            a.style.display = 'none'; 
-            a.href = url; 
-            a.download = filename;
-            document.body.appendChild(a); 
-            a.click(); 
-            setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 100);
-        }
 
         const auth = {
             currentPinInput: "", mode: "login", tempNewPin: "",
@@ -662,8 +640,14 @@
                     const scansData = {}; await localforage.iterate((value, key) => { scansData[key] = value; });
                     const blob = new Blob([JSON.stringify({ visits: data, scans: scansData })], { type: "application/json" });
                     
-                    // Téléchargement STRICT du fichier JSON en local (Anti-bug de partage mobile)
-                    pureDownload(`DocPocket_Sync_${new Date().toISOString().slice(0,10)}.json`, blob);
+                    const url = URL.createObjectURL(blob); 
+                    const a = document.createElement('a'); 
+                    a.style.display = 'none'; 
+                    a.href = url; 
+                    a.download = `DocPocket_Sync_${new Date().toISOString().slice(0,10)}.json`;
+                    document.body.appendChild(a); 
+                    a.click(); 
+                    setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 100);
                 } catch (e) { alert("Erreur d'exportation."); }
             },
 
@@ -713,16 +697,15 @@
             },
 
             // ====================================================================
-            // GÉNÉRATEURS DE PDF NATIFS FORCÉS (ANTI-ÉCRAN BLANC ET ANTI-JSON)
+            // GÉNÉRATION NATIVE ABSOLUE (CHAMBRE NOIRE ET .SAVE() POUR LE PDF)
             // ====================================================================
-            
+
             async generateMonthlyReport(event) {
                 const [y, m] = document.getElementById('report-month').value.split('-'); if(!y) return;
                 const filtered = this.visits.filter(v => new Date(v.date).getFullYear() == y && new Date(v.date).getMonth() == m - 1).sort((a, b) => (new Date(a.date).getTime()||0) - (new Date(b.date).getTime()||0));
                 
                 if (filtered.length === 0) return alert("Aucun acte enregistré ce mois.");
 
-                // 1. On remplit la chambre noire
                 document.getElementById('report-period-display').textContent = `${m}/${y}`; 
                 document.getElementById('report-signature-name').textContent = this.doctorName;
                 const tbody = document.getElementById('report-table-body'); 
@@ -738,29 +721,42 @@
                 document.getElementById('report-total-sum').textContent = total.toFixed(3);
                 
                 const element = document.getElementById('print-report-view'); 
-                const fn = `Journal_Honoraires_${m}-${y}.pdf`;
+                const originalParent = element.parentNode;
                 
+                // Chambre noire : permet au navigateur de "dessiner" le tableau sans vous gêner
+                const wrapper = document.createElement('div');
+                wrapper.style.position = 'absolute';
+                wrapper.style.top = '0';
+                wrapper.style.left = '0';
+                wrapper.style.width = '800px';
+                wrapper.style.zIndex = '-1000'; // Parfaitement caché derrière l'interface
+                wrapper.appendChild(element);
+                document.body.appendChild(wrapper);
+
+                element.style.display = 'block';
+
+                const fn = `Journal_Honoraires_${m}-${y}.pdf`;
                 let btnText = "Générer le Journal PDF"; if (event && event.target) { btnText = event.target.innerText; event.target.innerText = "⏳ Génération..."; }
                 
                 try {
-                    // Laisse le temps au DOM caché d'intégrer le tableau
-                    await new Promise(r => setTimeout(r, 100)); 
-                    
+                    await new Promise(r => setTimeout(r, 100)); // Laisse le temps au tableau de s'afficher en mémoire
                     const opt = { 
                         margin: [15, 15, 15, 15], 
                         filename: fn, 
-                        image: { type: 'jpeg', quality: 0.98 }, 
+                        image: { type: 'jpeg', quality: 1 }, 
                         html2canvas: { scale: 2, useCORS: true, logging: false }, 
                         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
                         pagebreak: { mode: ['css', 'legacy'] }
                     };
                     
-                    // 2. Génération stricte (interdit l'envoi au menu de partage qui corrompait l'extension)
+                    // N'utilise plus de navigateur tiers : force le téléchargement du fichier généré 
                     await html2pdf().set(opt).from(element).save();
-                    
                 } catch(err) {
                     alert("Erreur d'impression du bilan mensuel.");
                 } finally { 
+                    element.style.display = 'none';
+                    originalParent.appendChild(element); // Nettoie la chambre noire
+                    document.body.removeChild(wrapper);
                     if (event && event.target) event.target.innerText = btnText; 
                 }
             },
@@ -769,7 +765,6 @@
                 const v = this.visits.find(x => x.id === id); if (!v) return;
                 let vDate = new Date(v.date); if(isNaN(vDate.getTime())) vDate = new Date();
                 
-                // 1. On remplit la chambre noire
                 document.getElementById('print-date-display').textContent = `Le ${vDate.toLocaleDateString('fr-FR')} à ${vDate.toLocaleTimeString('fr-FR', {hour:'2-digit', minute:'2-digit'})}`;
                 document.getElementById('print-signature-name').textContent = this.doctorName;
                 document.getElementById('p-doc').textContent = (v.docType && v.docNum) ? `${v.docType} : ${v.docNum}` : (v.docType || v.docNum || '-');
@@ -782,33 +777,45 @@
                 }
                 
                 const element = document.getElementById('print-view'); 
-                const fn = `Rapport_Medical_${v.name.replace(/\s+/g, '_')}_${vDate.toLocaleDateString('fr-FR').replace(/\//g, '-')}.pdf`;
+                const originalParent = element.parentNode;
                 
+                // Chambre noire
+                const wrapper = document.createElement('div');
+                wrapper.style.position = 'absolute';
+                wrapper.style.top = '0';
+                wrapper.style.left = '0';
+                wrapper.style.width = '800px';
+                wrapper.style.zIndex = '-1000';
+                wrapper.appendChild(element);
+                document.body.appendChild(wrapper);
+
+                element.style.display = 'block';
+                
+                const fn = `Rapport_Medical_${(v.name||'Patient').replace(/\s+/g, '_')}_${vDate.toLocaleDateString('fr-FR').replace(/\//g, '-')}.pdf`;
                 let btnText = "📄 PDF"; if (buttonElement) { btnText = buttonElement.innerText; buttonElement.innerText = "⏳..."; }
 
                 try {
-                    await new Promise(r => setTimeout(r, 100)); 
-                    
+                    await new Promise(r => setTimeout(r, 100));
                     const opt = { 
                         margin: [15, 15, 15, 15], 
                         filename: fn, 
-                        image: { type: 'jpeg', quality: 0.98 }, 
+                        image: { type: 'jpeg', quality: 1 }, 
                         html2canvas: { scale: 2, useCORS: true, logging: false }, 
                         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
                         pagebreak: { mode: ['css', 'legacy'] }
                     };
                     
-                    // 2. Génération stricte et téléchargement immédiat
+                    // Téléchargement direct forcé
                     await html2pdf().set(opt).from(element).save();
-                    
                 } catch(err) {
                     alert("Erreur d'impression du rapport patient.");
                 } finally { 
+                    element.style.display = 'none';
+                    originalParent.appendChild(element);
+                    document.body.removeChild(wrapper);
                     if (buttonElement) buttonElement.innerText = btnText; 
                 }
             },
-
-            // ====================================================================
 
             renderDashboard(fStr = '') {
                 const list = document.getElementById('visits-list'); list.innerHTML = '';
