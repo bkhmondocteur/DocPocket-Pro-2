@@ -4,8 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>DocPocket Pro</title>
+    
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#003399">
+
     <link rel="manifest" href="manifest.json">
-    <meta name="theme-color" content="rgb(0, 51, 153)">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
@@ -56,7 +61,6 @@
         .btn-outline:hover { background-color: var(--primary-color); color: white; }
         .btn-danger { background-color: transparent; color: var(--danger-color); border: 1px solid var(--danger-color); }
         .btn-danger:hover { background-color: var(--danger-color); color: white; }
-        .btn-danger-solid { background-color: var(--danger-color); color: white; border: none; }
         .btn-success { background-color: var(--success-color); color: white; border: none; }
         
         /* FORMULAIRES */
@@ -84,12 +88,10 @@
 
         /* SCANNER & MODAL */
         .preview-img { width: 100%; max-height: 250px; object-fit: contain; border-radius: 4px; margin-bottom: 10px; background: #000; }
-        .preview-iframe { width: 100%; height: 350px; border-radius: 4px; margin-bottom: 10px; background: #fff; border: 1px solid var(--border-color); }
         .scan-item { display: flex; align-items: center; justify-content: space-between; background: #fdfdfd; padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); margin-bottom: 8px; }
         .modal { display: flex; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); z-index: 10000; flex-direction: column; justify-content: center; align-items: center; padding: 15px; box-sizing: border-box; }
         .modal-header { width: 100%; display: flex; justify-content: space-between; align-items: center; padding: 15px; color: white; position: absolute; top: 0; left: 0; background: linear-gradient(rgba(0,0,0,0.7), transparent); }
         .modal-content { max-width: 100%; max-height: 85vh; object-fit: contain; border-radius: 4px; }
-        #modal-scan-pdf { width: 100%; height: 85vh; background: white; border-radius: 4px; border: none; }
         .close-modal { font-size: 2.5rem; color: white; cursor: pointer; padding: 0 10px; }
 
         @media (min-width: 768px) {
@@ -139,7 +141,7 @@
         <header class="app-header">
             <div class="header-left"></div>
             <div class="logo-container">
-                <img class="header-logo" src="icon-512.png?v=3" alt="Logo" onerror="this.style.display='none'">
+                <img class="header-logo" id="main-app-logo" src="icon-512.png?v=3" alt="Logo" onerror="this.style.display='none'">
                 <h1 id="app-title-display">DocPocket Pro</h1>
             </div>
             <div class="header-right">
@@ -165,15 +167,15 @@
                 <div class="backup-panel">
                     <div><strong>🎨 Personnalisation (En-tête & Cachet)</strong><p>Configurez les logos officiels.</p></div>
                     <div style="display:flex; flex-direction:column; gap:10px; width:100%; max-width:350px;">
-                        <div class="backup-actions"><button class="btn btn-outline" style="flex:1;" onclick="document.getElementById('personal-upload').click()">👨‍⚕️ Logo Personnel</button><input type="file" id="personal-upload" accept="image/*" style="display:none" onchange="app.handleImageUpload(event, 'docpocket_personal_logo', 'Logo personnel ajouté')"><button class="btn btn-danger" style="flex:none; padding:0 15px;" onclick="app.removeImage('docpocket_personal_logo', 'Effacer le logo personnel ?')">✖</button></div>
-                        <div class="backup-actions"><button class="btn btn-outline" style="flex:1;" onclick="document.getElementById('logo-upload').click()">🖼️ Logo Application</button><input type="file" id="logo-upload" accept="image/*" style="display:none" onchange="app.handleImageUpload(event, 'docpocket_custom_logo', 'Logo de l\'application mis à jour')"><button class="btn btn-danger" style="flex:none; padding:0 15px;" onclick="app.removeImage('docpocket_custom_logo', 'Remettre le logo par défaut ?')">✖</button></div>
-                        <div class="backup-actions"><button class="btn btn-outline" style="flex:1;" onclick="document.getElementById('partner-upload').click()">🤝 Logo Partenaire</button><input type="file" id="partner-upload" accept="image/*" style="display:none" onchange="app.handleImageUpload(event, 'docpocket_partner_logo', 'Logo partenaire configuré')"><button class="btn btn-danger" style="flex:none; padding:0 15px;" onclick="app.removeImage('docpocket_partner_logo', 'Effacer le logo partenaire ?')">✖</button></div>
-                        <div class="backup-actions"><button class="btn btn-outline" style="flex:1;" onclick="document.getElementById('sign-upload').click()">🖋️ Signature & Cachet</button><input type="file" id="sign-upload" accept="image/*" style="display:none" onchange="app.handleImageUpload(event, 'docpocket_custom_signature', 'Signature numérisée enregistrée')"><button class="btn btn-danger" style="flex:none; padding:0 15px;" onclick="app.removeImage('docpocket_custom_signature', 'Supprimer l\'empreinte de la signature ?')">✖</button></div>
+                        <div class="backup-actions"><button class="btn btn-outline" style="flex:1;" onclick="document.getElementById('personal-upload').click()">👨‍⚕️ Logo Personnel</button><input type="file" id="personal-upload" accept="image/*" style="display:none" onchange="app.handleImageUpload(event, 'docpocket_personal_logo', 'Logo personnel ajouté')"><button class="btn btn-danger" style="flex:none; padding:0 15px;" onclick="app.removeImage('docpocket_personal_logo', 'Effacer ?')">✖</button></div>
+                        <div class="backup-actions"><button class="btn btn-outline" style="flex:1;" onclick="document.getElementById('logo-upload').click()">🖼️ Logo Application</button><input type="file" id="logo-upload" accept="image/*" style="display:none" onchange="app.handleImageUpload(event, 'docpocket_custom_logo', 'Logo app mis à jour')"><button class="btn btn-danger" style="flex:none; padding:0 15px;" onclick="app.removeImage('docpocket_custom_logo', 'Effacer ?')">✖</button></div>
+                        <div class="backup-actions"><button class="btn btn-outline" style="flex:1;" onclick="document.getElementById('partner-upload').click()">🤝 Logo Partenaire</button><input type="file" id="partner-upload" accept="image/*" style="display:none" onchange="app.handleImageUpload(event, 'docpocket_partner_logo', 'Logo partenaire ajouté')"><button class="btn btn-danger" style="flex:none; padding:0 15px;" onclick="app.removeImage('docpocket_partner_logo', 'Effacer ?')">✖</button></div>
+                        <div class="backup-actions"><button class="btn btn-outline" style="flex:1;" onclick="document.getElementById('sign-upload').click()">🖋️ Signature & Cachet</button><input type="file" id="sign-upload" accept="image/*" style="display:none" onchange="app.handleImageUpload(event, 'docpocket_custom_signature', 'Cachet enregistré')"><button class="btn btn-danger" style="flex:none; padding:0 15px;" onclick="app.removeImage('docpocket_custom_signature', 'Effacer ?')">✖</button></div>
                     </div>
                 </div>
 
                 <div class="backup-panel">
-                    <div><strong>📊 Bilan Mensuel Clinique (PDF JS)</strong></div>
+                    <div><strong>📊 Bilan Mensuel Clinique</strong></div>
                     <div class="backup-actions">
                         <input type="month" id="report-month" class="form-control" style="flex:1; padding: 0.5rem;">
                         <button class="btn" onclick="app.generateMonthlyReport(event)" style="flex:1;">Générer le PDF</button>
@@ -183,8 +185,11 @@
                 <div class="backup-panel">
                     <div><strong>⚙️ Sync & Sécurité</strong></div>
                     <div class="backup-actions">
-                        <button class="btn btn-outline" onclick="app.exportBackup()">📥 Exporter la base</button><input type="file" id="import-file" style="display:none" accept=".json" onchange="app.importBackup(event)">
-                        <button class="btn btn-outline" onclick="document.getElementById('import-file').click()">📤 Importer</button><button class="btn btn-outline" style="border-color: #f57c00; color: #f57c00;" onclick="auth.startChangePin()">🔑 PIN</button><button id="btn-activate-bio" class="btn btn-outline hidden" style="border-color: #4CAF50; color: #4CAF50; flex-basis: 100%;" onclick="auth.registerBiometrics()">🛡️ Biométrie</button>
+                        <button class="btn btn-outline" onclick="app.exportBackup()">📥 Exporter la base</button>
+                        <input type="file" id="import-file" style="display:none" accept=".json" onchange="app.importBackup(event)">
+                        <button class="btn btn-outline" onclick="document.getElementById('import-file').click()">📤 Importer</button>
+                        <button class="btn btn-outline" style="border-color: #f57c00; color: #f57c00;" onclick="auth.startChangePin()">🔑 PIN</button>
+                        <button id="btn-activate-bio" class="btn btn-outline hidden" style="border-color: #4CAF50; color: #4CAF50; flex-basis: 100%;" onclick="auth.registerBiometrics()">🛡️ Biométrie</button>
                     </div>
                 </div>
             </main>
@@ -192,7 +197,7 @@
             <main id="form-view" class="hidden">
                 <div style="display: flex; gap: 10px; margin-bottom: 1rem;">
                     <button type="button" class="btn btn-outline" onclick="app.showDashboard()" style="flex: 1;">← Retour</button>
-                    <button type="button" id="btn-new-followup" class="btn btn-success" onclick="app.newVisitForSamePatient()" style="flex: 2; display: none;">➕ Saisir un suivi patient</button>
+                    <button type="button" id="btn-new-followup" class="btn btn-success" onclick="app.newVisitForSamePatient()" style="flex: 2; display: none;">➕ Suivi patient</button>
                 </div>
                 
                 <form id="consultation-form" onsubmit="app.saveVisit(event)">
@@ -232,17 +237,17 @@
                     </section>
 
                     <section class="form-section" id="scanner-section">
-                        <h2>📸 Pièces Jointes & Explorations</h2>
+                        <h2>📸 Pièces Jointes</h2>
                         <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                             <label for="camera-input" class="btn" style="flex: 1; text-align: center; cursor: pointer; padding: 12px 0;">📸 Photo</label>
-                            <label for="gallery-input" class="btn btn-outline" style="flex: 1; text-align: center; cursor: pointer; background: white; padding: 12px 0;">📁 Fichier / Galerie</label>
+                            <label for="gallery-input" class="btn btn-outline" style="flex: 1; text-align: center; cursor: pointer; background: white; padding: 12px 0;">📁 Galerie</label>
                         </div>
                         <input type="file" id="camera-input" accept="image/*" capture="environment" style="display: none;" onchange="app.handleCameraInput(event)">
-                        <input type="file" id="gallery-input" accept="image/*,application/pdf" style="display: none;" onchange="app.handleCameraInput(event)">
+                        <input type="file" id="gallery-input" accept="image/*" style="display: none;" onchange="app.handleCameraInput(event)">
                         
                         <div id="scanner-preview-section" class="hidden" style="background: #f9f9f9; padding: 15px; border: 1px dashed var(--primary-color); border-radius: 8px; margin-bottom: 15px;">
-                            <img id="scanner-preview" class="preview-img hidden"><iframe id="scanner-preview-pdf" class="preview-iframe hidden"></iframe>
-                            <div class="form-group" style="margin-bottom: 10px;"><label>Nature de l'exploration :</label><input type="text" id="scan-name" class="form-control" placeholder="Ex: NFS, Cliché Thoracique..."></div>
+                            <img id="scanner-preview" class="preview-img hidden">
+                            <div class="form-group" style="margin-bottom: 10px;"><label>Intitulé du document :</label><input type="text" id="scan-name" class="form-control" placeholder="Ex: Ordonnance..."></div>
                             <div style="display: flex; gap: 10px;"><button type="button" class="btn btn-success" style="flex: 1;" onclick="app.saveScan()">💾 Valider</button><button type="button" class="btn btn-danger-solid" style="flex: 1;" onclick="app.cancelScan()">❌ Annuler</button></div>
                         </div>
                         <div id="scans-list" style="display: flex; flex-direction: column; gap: 8px;"></div>
@@ -286,7 +291,7 @@
 
     <div id="view-scan-modal" class="modal hidden">
         <div class="modal-header"><div><h3 id="modal-scan-title" style="margin: 0; font-size: 1.2rem; color: white;">Document</h3><span id="modal-scan-date" style="font-size: 0.85rem; opacity: 0.8;">Date</span></div><span class="close-modal" onclick="app.closeScanViewer()">&times;</span></div>
-        <img id="modal-scan-img" class="modal-content hidden" src="" onclick="app.closeScanViewer()"><iframe id="modal-scan-pdf" class="modal-content hidden" src=""></iframe>
+        <img id="modal-scan-img" class="modal-content hidden" src="" onclick="app.closeScanViewer()">
     </div>
 
     <script>
@@ -297,7 +302,6 @@
             temp: 'vital-temp', spo2: 'vital-spo2', examGeneral: 'exam-general', examHemo: 'exam-hemo', examResp: 'exam-resp', 
             examNeuro: 'exam-neuro', examAbdo: 'exam-abdo', examOther: 'exam-other', examReco: 'exam-reco', prescription: 'prescription', fee: 'visit-fee'
         };
-        const EXAM_LABELS = { examGeneral: 'Plan Général', examHemo: 'Hémodynamique', examResp: 'Respiratoire', examNeuro: 'Neurologique', examAbdo: 'Abdominal', examOther: 'Reste de l\'examen', examReco: 'Recommandation' };
 
         const cryptoUtils = {
             async deriveKey(pin, salt) {
@@ -320,6 +324,19 @@
                 return new TextDecoder().decode(decryptedBuffer);
             }
         };
+
+        // GESTIONNAIRE POUR LES SAUVEGARDES JSON DE LA BASE DE DONNÉES
+        function downloadJSON(filename, data) {
+            const blob = new Blob([data], { type: 'application/json' });
+            const url = URL.createObjectURL(blob); 
+            const a = document.createElement('a'); 
+            a.style.display = 'none'; 
+            a.href = url; 
+            a.download = filename;
+            document.body.appendChild(a); 
+            a.click(); 
+            setTimeout(() => { document.body.removeChild(a); window.URL.revokeObjectURL(url); }, 100);
+        }
 
         const auth = {
             currentPinInput: "", mode: "login", tempNewPin: "",
@@ -351,29 +368,35 @@
         };
 
         const app = {
-            visits: [], currentScans: [], tempScanBase64: "", tempScanType: "", STORAGE_KEY: 'docpocket_visits_data', doctorName: '', currentPin: '', deferredPrompt: null,
+            visits: [], currentScans: [], tempScanBase64: "", tempScanType: "", STORAGE_KEY: 'docpocket_visits_data_v2', doctorName: '', currentPin: '', deferredPrompt: null,
 
             async init() {
                 this.doctorName = localStorage.getItem('docpocket_doc_name') || 'Dr';
                 document.getElementById('app-title-display').textContent = `DocPocket Pro`;
                 localforage.config({ name: 'DocPocketPro', storeName: 'dossiers_scans' });
                 
+                await this.loadCustomImages();
                 if (window.isSecureContext && window.PublicKeyCredential) document.getElementById('btn-activate-bio').classList.remove('hidden');
-                if ('serviceWorker' in navigator) {
-                    navigator.serviceWorker.register('sw.js').then(reg => { reg.update(); }).catch(()=>{});
-                }
+                if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js').then(reg => { reg.update(); }).catch(()=>{}); }
                 window.addEventListener('beforeinstallprompt', (e) => { e.preventDefault(); this.deferredPrompt = e; document.getElementById('pwa-install-banner').classList.remove('hidden'); });
                 
                 const now = new Date(); document.getElementById('report-month').value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
                 this.renderDashboard(); document.getElementById('search-input').addEventListener('input', (e) => this.renderDashboard(e.target.value.toLowerCase()));
             },
 
+            async loadCustomImages() {
+                try {
+                    const lBase = await localforage.getItem('docpocket_custom_logo') || "icon-512.png?v=3";
+                    const hl = document.getElementById('main-app-logo'); if(hl && lBase) hl.src = lBase;
+                } catch(e) {}
+            },
+
             handleImageUpload(event, storageKey, successMsg) {
                 const file = event.target.files[0]; if (!file) return; const reader = new FileReader();
-                reader.onload = async (e) => { await localforage.setItem(storageKey, e.target.result); alert("✅ " + successMsg); };
+                reader.onload = async (e) => { await localforage.setItem(storageKey, e.target.result); await this.loadCustomImages(); alert("✅ " + successMsg); };
                 reader.readAsDataURL(file); event.target.value = '';
             },
-            async removeImage(storageKey, confirmMsg) { if(confirm(confirmMsg)) { await localforage.removeItem(storageKey); } },
+            async removeImage(storageKey, confirmMsg) { if(confirm(confirmMsg)) { await localforage.removeItem(storageKey); await this.loadCustomImages(); } },
             
             async installPWA() { if (this.deferredPrompt) { this.deferredPrompt.prompt(); const { outcome } = await this.deferredPrompt.userChoice; if (outcome === 'accepted') document.getElementById('pwa-install-banner').classList.add('hidden'); this.deferredPrompt = null; } },
             
@@ -430,9 +453,8 @@
                 const file = event.target.files[0]; if (!file) return; const reader = new FileReader();
                 reader.onload = (e) => {
                     this.tempScanBase64 = e.target.result; this.tempScanType = file.type;
-                    const img = document.getElementById('scanner-preview'); const pdf = document.getElementById('scanner-preview-pdf');
-                    if (file.type === 'application/pdf') { img.classList.add('hidden'); pdf.classList.remove('hidden'); pdf.src = this.tempScanBase64; } 
-                    else { pdf.classList.add('hidden'); img.classList.remove('hidden'); img.src = this.tempScanBase64; }
+                    const img = document.getElementById('scanner-preview');
+                    img.classList.remove('hidden'); img.src = this.tempScanBase64;
                     document.getElementById('scanner-preview-section').classList.remove('hidden'); document.getElementById('scan-name').focus();
                 }; reader.readAsDataURL(file); event.target.value = ''; 
             },
@@ -448,19 +470,17 @@
                 const list = document.getElementById('scans-list'); list.innerHTML = "";
                 if (this.currentScans.length === 0) return list.innerHTML = `<p style="text-align:center; color:#888; font-size: 0.9rem;">Aucun document lié.</p>`;
                 this.currentScans.forEach(s => {
-                    const icon = (s.type === 'application/pdf') ? "📄" : "🖼️";
-                    list.innerHTML += `<div class="scan-item"><div style="flex:1; cursor:pointer;" onclick="app.openScanViewer(${s.id})"><strong style="color: var(--secondary-color);">${icon} ${s.name}</strong><br><span style="font-size:0.8rem; color:#666;">Ajouté le ${s.date}</span></div><div style="display: flex; gap: 5px;"><button type="button" class="btn btn-outline" style="padding: 6px 12px; background: white;" onclick="app.editScan(${s.id})">✏️</button><button type="button" class="btn btn-danger" style="padding: 6px 12px;" onclick="app.deleteScan(${s.id})">🗑️</button></div></div>`;
+                    list.innerHTML += `<div class="scan-item"><div style="flex:1; cursor:pointer;" onclick="app.openScanViewer(${s.id})"><strong style="color: var(--secondary-color);">🖼️ ${s.name}</strong><br><span style="font-size:0.8rem; color:#666;">Ajouté le ${s.date}</span></div><div style="display: flex; gap: 5px;"><button type="button" class="btn btn-outline" style="padding: 6px 12px; background: white;" onclick="app.editScan(${s.id})">✏️</button><button type="button" class="btn btn-danger" style="padding: 6px 12px;" onclick="app.deleteScan(${s.id})">🗑️</button></div></div>`;
                 });
             },
             openScanViewer(id) {
                 const s = this.currentScans.find(x => x.id === id); if (!s) return;
                 document.getElementById('modal-scan-title').textContent = s.name; document.getElementById('modal-scan-date').textContent = s.date;
-                const img = document.getElementById('modal-scan-img'); const pdf = document.getElementById('modal-scan-pdf');
-                if (s.type === 'application/pdf' || s.image.startsWith('data:application/pdf')) { img.classList.add('hidden'); pdf.classList.remove('hidden'); pdf.src = s.image; } 
-                else { pdf.classList.add('hidden'); img.classList.remove('hidden'); img.src = s.image; }
+                const img = document.getElementById('modal-scan-img');
+                img.classList.remove('hidden'); img.src = s.image;
                 document.getElementById('view-scan-modal').classList.remove('hidden');
             },
-            closeScanViewer() { document.getElementById('view-scan-modal').classList.add('hidden'); document.getElementById('modal-scan-img').src = ""; document.getElementById('modal-scan-pdf').src = ""; },
+            closeScanViewer() { document.getElementById('view-scan-modal').classList.add('hidden'); document.getElementById('modal-scan-img').src = ""; },
 
             async saveVisit(e) {
                 if (e) e.preventDefault(); 
@@ -599,13 +619,11 @@
             },
 
             // ====================================================================
-            // GÉNÉRATEUR PUR JAVASCRIPT (MÉTHODE B) - CORRECTION DU CACHET
+            // GÉNÉRATION PURE JAVASCRIPT (MÉTHODE B) - AUTO RATIO CACHET
             // ====================================================================
             
-            // Fonction utilitaire pour dessiner les images sans les déformer
             drawProportionalImage(doc, base64, x, y, maxW, maxH, align="left") {
                 try {
-                    // Récupérer les dimensions originales de l'image (format inconnu géré automatiquement par jsPDF)
                     const props = doc.getImageProperties(base64);
                     const ratio = props.width / props.height;
                     
@@ -621,12 +639,9 @@
                     if (align === "right") finalX = x - w;
                     else if (align === "center") finalX = x - (w / 2);
                     
-                    doc.addImage(base64, finalX, y, w, h);
-                    return h; // Retourne la hauteur finale pour ajuster le Y si nécessaire
-                } catch(e) { 
-                    console.error("Image error", e); 
-                    return 0; 
-                }
+                    doc.addImage(base64, 'JPEG', finalX, y, w, h);
+                    return h;
+                } catch(e) { return 0; }
             },
 
             async generateMonthlyReport(event) {
@@ -643,7 +658,6 @@
                     
                     doc.setFont("times", "normal");
                     
-                    // Logos gérés de manière proportionnelle
                     const perBase = await localforage.getItem('docpocket_personal_logo');
                     const parBase = await localforage.getItem('docpocket_partner_logo');
                     const lBase = await localforage.getItem('docpocket_custom_logo');
@@ -684,7 +698,6 @@
                     doc.setFontSize(14);
                     doc.text(`Total mensuel : ${total.toFixed(3)} DT`, 195, finalY, { align: "right" });
                     
-                    // Signature gérée proportionnellement et alignée à droite (marge 195)
                     const sigBase = await localforage.getItem('docpocket_custom_signature');
                     if (sigBase) {
                         this.drawProportionalImage(doc, sigBase, 195, finalY + 5, 45, 30, "right");
@@ -711,7 +724,6 @@
                     
                     doc.setFont("times", "normal"); 
                     
-                    // Logos
                     const lBase = await localforage.getItem('docpocket_custom_logo');
                     const perBase = await localforage.getItem('docpocket_personal_logo');
                     const parBase = await localforage.getItem('docpocket_partner_logo');
@@ -821,7 +833,6 @@
                     doc.text("Signature et Cachet :", 195, y, { align: "right" });
                     y += 5;
                     
-                    // Signature proportionnelle alignée à droite
                     if(sigBase) {
                         const sigH = this.drawProportionalImage(doc, sigBase, 195, y, 45, 30, "right");
                         y += sigH + 5;
